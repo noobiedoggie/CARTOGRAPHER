@@ -60,6 +60,7 @@ export class Game {
 
     this.exitLocked = false;
     this.boss = null;
+    if (run.upg('compass')) this.exitKnown = true;
     this.enemies = [];
     this.projectiles = [];
 
