@@ -10,6 +10,7 @@ import { HUD } from './ui/hud.js';
 import { Game } from './game/game.js';
 import { Run } from './game/run.js';
 import { INK } from './world/tiles.js';
+import { bindFeedback } from './ui/feedback.js';
 
 const S = TILE;
 
@@ -97,37 +98,8 @@ class App {
   }
 
   bindEvents(game) {
-    const fx = this.renderer.effects;
-    const ev = game.events;
-    const center = (x, y) => [(x + 0.5) * S, (y + 0.5) * S];
-    ev.on('toast', (d) => this.hud.toast(d.text, d.kind));
-    ev.on('pool', (d) => {
-      const [x, y] = center(d.x, d.y);
-      fx.ring(x, y, '#2a2440', 40, 0.7);
-      fx.text(x, y - 18, `+${d.gain} ink`, '#1d1915');
-    });
-    ev.on('chest', (d) => {
-      const [x, y] = center(d.x, d.y);
-      fx.burst(x, y, 16, { color: '#e0b648', speed: 90, kind: 'flake', up: 30 });
-      fx.text(x, y - 20, d.text, d.kind === 'heart' ? '#a3302a' : '#6b4a2b');
-    });
-    ev.on('stroke', (d) => {
-      for (const i of d.tiles.slice(0, 30)) {
-        if (Math.random() < 0.35) fx.burst((game.world.xOf(i) + 0.5) * S, (game.world.yOf(i) + 0.5) * S, 2, { color: '#1d1915', speed: 30, size: 1.6 });
-      }
-      if (d.partial) this.hud.toast('Ran out of ink - only part of the line was drawn', 'warn');
-    });
-    ev.on('strokeFail', () => this.hud.toast('Not enough ink!', 'warn'));
-    ev.on('undo', (d) => this.hud.toast(`Undone (+${d.refund} ink)`, 'info', 1200));
-    ev.on('noPath', (d) => {
-      const [x, y] = center(d.x, d.y);
-      fx.ring(x, y, 'rgba(163,48,42,0.9)', 22, 0.5, 2);
-    });
-    ev.on('damage', () => {
-      this.camera.shake(9);
-      this.renderer.flash = 0.45;
-    });
-    ev.on('exit', () => {
+    bindFeedback(game, { renderer: this.renderer, camera: this.camera, hud: this.hud });
+    game.events.on('exit', () => {
       this.run.floor++;
       setTimeout(() => this.startFloor(), 600);
     });

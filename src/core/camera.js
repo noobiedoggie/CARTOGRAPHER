@@ -80,14 +80,15 @@ export class Camera {
       this.panY -= this.panY * relax;
     }
     let gx = tx + this.panX;
-    let gy = ty + this.panY;
+    // Keep the explorer a little above centre: the ink picker lives at the bottom.
+    let gy = ty + this.panY + 40 / this.zoom;
     if (this.bounds) {
       // Keep the map mostly on screen.
       const hw = this.viewW / 2 / this.zoom;
       const hh = this.viewH / 2 / this.zoom;
       const m = TILE * 2;
       gx = this.bounds.w < hw * 2 - 2 * m ? this.bounds.w / 2 : clamp(gx, hw - m, this.bounds.w - hw + m);
-      gy = this.bounds.h < hh * 2 - 2 * m ? this.bounds.h / 2 : clamp(gy, hh - m * 2, this.bounds.h - hh + m * 2);
+      gy = this.bounds.h < hh * 2 - 2 * m ? this.bounds.h / 2 : clamp(gy, hh - m * 2.5, this.bounds.h - hh + m * 3);
     }
     if (snap) {
       this.x = gx;

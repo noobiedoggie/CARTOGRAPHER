@@ -100,7 +100,7 @@ export class HUD {
       el.hearts.classList.add('hit');
     });
     this._set('floor', run.floor, (f) => {
-      el.floor.textContent = f >= BOSS_FLOOR ? 'The Devourer' : `Floor ${f}`;
+      el.floor.innerHTML = `<span>${f >= BOSS_FLOOR ? 'The Devourer' : `Floor ${f} / ${BOSS_FLOOR - 1}`}</span>`;
     });
 
     // Ink bar + live cost preview

@@ -14,7 +14,7 @@ import { paintTerrain } from './terrainPainter.js';
 import { drawInkTile } from './inkPainter.js';
 import { FogRenderer } from './fogRenderer.js';
 import { Effects } from './effects.js';
-import { drawPlayer, drawDestination } from './sprites.js';
+import { drawPlayer, drawDestination, drawSmudge, drawEraser, drawScribbler, drawDevourer, drawBlot } from './sprites.js';
 
 const S = TILE;
 
@@ -159,13 +159,16 @@ export class Renderer {
       this._drawRoute(ctx, game, time);
       this._drawPreview(ctx, game, time);
       for (const d of this.extraDrawers) d(ctx, scene);
+      this._drawEnemies(ctx, game, time);
       if (!game.dead || Math.floor(time * 8) % 2) drawPlayer(ctx, game.player, scene.skin, time, !!game.stroke);
+      for (const b of game.projectiles) drawBlot(ctx, b, time);
     } else {
       for (const d of this.extraDrawers) d(ctx, scene);
     }
     this.effects.draw(ctx);
 
     if (scene.showFog !== false && this.fog) this.fog.draw(ctx);
+    if (game) this._drawOverFog(ctx, game, time);
     for (const d of this.overFogDrawers) d(ctx, scene);
     this._drawBorder(ctx, MW, MH);
 
@@ -185,7 +188,141 @@ export class Renderer {
       ctx.fillRect(0, 0, this.cssW, this.cssH);
     }
     for (const d of this.screenDrawers) d(ctx, scene);
-    if (game) this._drawCostLabel(ctx, game, scene, time);
+    if (game) {
+      this._drawRewriteWarning(ctx, game, time);
+      this._drawCompass(ctx, game, scene, time);
+      this._drawCostLabel(ctx, game, scene, time);
+    }
+  }
+
+  /** Enemies are only drawn where the explorer can see (faded at the vision edge). */
+  _drawEnemies(ctx, game, time) {
+    const w = game.world;
+    const vis = this.fog ? this.fog.vis : null;
+    for (const e of game.enemies) {
+      if (e.kind === 'boss') continue; // drawn above the fog
+      const a = vis ? vis[e.tile] : w.visible[e.tile];
+      if (a <= 0.05) continue;
+      ctx.globalAlpha = Math.min(1, a * 1.4);
+      if (e.kind === 'smudge') drawSmudge(ctx, e, time);
+      else if (e.kind === 'eraser') {
+        drawEraser(ctx, e, time);
+        if (e.erasing >= 0) {
+          // highlight the tile being rubbed out
+          const ex = (w.xOf(e.erasing) + 0.5) * S;
+          const ey = (w.yOf(e.erasing) + 0.5) * S;
+          ctx.strokeStyle = `rgba(229,154,161,${0.5 + 0.4 * Math.sin(time * 20)})`;
+          ctx.lineWidth = 2;
+          ctx.strokeRect(ex - S * 0.45, ey - S * 0.45, S * 0.9, S * 0.9);
+          if (Math.random() < 0.4) this.effects.burst(ex, ey, 1, { color: '#e59aa1', kind: 'crumb', speed: 50, size: 1.6, gravity: 80 });
+        }
+      } else if (e.kind === 'scribbler') drawScribbler(ctx, e, time);
+      ctx.globalAlpha = 1;
+    }
+  }
+
+  _drawOverFog(ctx, game, time) {
+    const w = game.world;
+    // Ink pools sensed through the fog (Pool Diviner upgrade).
+    if (game.run.upg('diviner')) {
+      ctx.fillStyle = 'rgba(40,36,70,0.55)';
+      for (let i = 0; i < w.n; i++) {
+        if (w.terrain[i] !== T.POOL || w.visible[i]) continue;
+        ctx.beginPath();
+        ctx.arc((w.xOf(i) + 0.5) * S, (w.yOf(i) + 0.5) * S, S * (0.18 + 0.03 * Math.sin(time * 3 + i)), 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    // Known stairs stay marked on the map.
+    const e = w.exit;
+    if (game.exitKnown && !w.visible[w.idx(e.x, e.y)]) {
+      const cx = (e.x + 0.5) * S;
+      const cy = (e.y + 0.5) * S;
+      const r = S * (0.55 + 0.08 * Math.sin(time * 4));
+      ctx.strokeStyle = game.exitLocked ? 'rgba(110,40,140,0.85)' : 'rgba(170,120,30,0.9)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.fillStyle = 'rgba(43,32,24,0.85)';
+      for (let k = 0; k < 3; k++) ctx.fillRect(cx - S * 0.25 + k * 3, cy - S * 0.2 + k * S * 0.15, S * 0.5 - k * 6, S * 0.1);
+    }
+    // The Devourer looms over the fog as a shadow.
+    if (game.boss && game.boss.alive) {
+      const b = game.boss;
+      const seen = w.visible[b.tile] === 1;
+      drawDevourer(ctx, b, time, seen ? 1 : 0.45);
+    }
+    // Rewrite wave band
+    const rw = game.rewrite;
+    if (rw && rw.sweeping) {
+      const y = rw.sweepPos * S;
+      const MW = w.w * S;
+      const g = ctx.createLinearGradient(0, y - S * 3, 0, y + S * 0.8);
+      g.addColorStop(0, 'rgba(120,80,40,0)');
+      g.addColorStop(0.8, 'rgba(120,80,40,0.38)');
+      g.addColorStop(1, 'rgba(120,80,40,0)');
+      ctx.fillStyle = g;
+      ctx.fillRect(0, y - S * 3, MW, S * 3.8);
+      ctx.strokeStyle = 'rgba(40,24,12,0.85)';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      const frame = Math.floor(time * 14);
+      for (let x = 0; x <= MW; x += S / 2) {
+        const yy = y + (hash2(x, frame, 9) - 0.5) * 8;
+        if (x === 0) ctx.moveTo(x, yy);
+        else ctx.lineTo(x, yy);
+      }
+      ctx.stroke();
+      for (let k = 0; k < 3; k++) {
+        this.effects.burst(Math.random() * MW, y, 1, { color: '#d9c7a0', kind: 'flake', speed: 40, size: 3, gravity: 30, life: 1 });
+      }
+    }
+  }
+
+  /** Pulsing sepia edge in the last seconds before a rewrite. */
+  _drawRewriteWarning(ctx, game, time) {
+    const rw = game.rewrite;
+    if (!rw || rw.sweeping || rw.timeLeft > 5) return;
+    const k = (1 - rw.timeLeft / 5) * (0.5 + 0.5 * Math.sin(time * 9));
+    const g = ctx.createLinearGradient(0, 0, 0, this.cssH * 0.25);
+    g.addColorStop(0, `rgba(110,70,30,${0.45 * k})`);
+    g.addColorStop(1, 'rgba(110,70,30,0)');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, this.cssW, this.cssH * 0.25);
+  }
+
+  /** Arrow at the screen edge pointing to known-but-offscreen stairs. */
+  _drawCompass(ctx, game, scene, time) {
+    if (!game.exitKnown) return;
+    const w = game.world;
+    const [sx, sy] = scene.camera.worldToScreen((w.exit.x + 0.5) * S, (w.exit.y + 0.5) * S);
+    const m = 40;
+    if (sx > m && sx < this.cssW - m && sy > 130 && sy < this.cssH - 120) return;
+    const cx = this.cssW / 2;
+    const cy = this.cssH / 2;
+    const a = Math.atan2(sy - cy, sx - cx);
+    const rx = this.cssW / 2 - m;
+    const ry = this.cssH / 2 - 140;
+    const t = Math.min(rx / Math.abs(Math.cos(a) || 1e-6), ry / Math.abs(Math.sin(a) || 1e-6));
+    const ax = cx + Math.cos(a) * t;
+    const ay = cy + Math.sin(a) * t;
+    ctx.save();
+    ctx.translate(ax, ay);
+    ctx.rotate(a);
+    const bob = Math.sin(time * 5) * 3;
+    ctx.fillStyle = game.exitLocked ? 'rgba(110,40,140,0.9)' : 'rgba(201,150,43,0.95)';
+    ctx.strokeStyle = '#1d1915';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(16 + bob, 0);
+    ctx.lineTo(-8 + bob, -11);
+    ctx.lineTo(-3 + bob, 0);
+    ctx.lineTo(-8 + bob, 11);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
   }
 
   _drawDynamicTiles(ctx, world, x0, y0, x1, y1, time, game) {

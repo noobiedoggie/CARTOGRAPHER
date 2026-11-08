@@ -15,16 +15,23 @@ import { computeVision, revealDisc } from '../world/vision.js';
 import { generateFloor } from '../world/generator.js';
 import { Player } from './player.js';
 import { Stroke, line4, canDraw, strokeCosts, affordableCount, MAX_STROKE } from './ink.js';
+import { EnemySystem } from './enemies.js';
+import { HazardSystem } from './hazards.js';
+import { RewriteSystem } from './rewrite.js';
+import { BossFloorSystem } from './boss.js';
 
 export class Game {
   /**
    * @param {object} o
    * @param {import('./run.js').Run} o.run
    * @param {Emitter} [o.events]
+   * @param {boolean} [o.noEnemies]  tests: skip enemy spawns
+   * @param {boolean} [o.noRewrite]  tests: no rewrite waves
    */
-  constructor({ run, events }) {
+  constructor({ run, events, noEnemies = false, noRewrite = false }) {
     this.run = run;
     this.floor = run.floor;
+    this.isBoss = run.isBossFloor;
     this.events = events || new Emitter();
     this.seed = mixSeed(run.seed, run.floor);
     this.rng = new RNG(mixSeed(this.seed, 77));
@@ -51,13 +58,55 @@ export class Game {
     this.paused = false;
     this.floorStats = { strokes: 0, walked: 0, poolsUsed: 0 };
 
-    // Systems added in later phases hook in here.
+    this.exitLocked = false;
+    this.boss = null;
     this.enemies = [];
     this.projectiles = [];
-    this.systems = [];
 
     run.ink = run.maxInk; // ink refills at the start of every floor
     this.refreshVision();
+
+    // Systems are updated in order every frame.
+    this.hazards = new HazardSystem();
+    this.enemySystem = new EnemySystem(this, !noEnemies);
+    this.bossFloor = this.isBoss && !noEnemies ? new BossFloorSystem(this) : null;
+    this.rewrite = noRewrite ? null : new RewriteSystem(this);
+    this.systems = [this.hazards, this.enemySystem, this.rewrite, this.bossFloor].filter(Boolean);
+  }
+
+  objectiveText() {
+    return this.bossFloor ? this.bossFloor.objective() : '';
+  }
+
+  /** Enemy ink blot projectile from (x,y) aimed at (tx,ty) (tile units). */
+  spawnBlot(x, y, tx, ty) {
+    const dx = tx - x;
+    const dy = ty - y;
+    const d = Math.hypot(dx, dy) || 1;
+    this.projectiles.push({ x, y, vx: (dx / d) * BAL.blotSpeed, vy: (dy / d) * BAL.blotSpeed, life: 2.2, alive: true });
+    this.events.emit('blot', { x, y });
+  }
+
+  /** After each rewrite wave: new trouble appears in the redrawn areas. */
+  onRewrite(changed) {
+    if (this.dead || this.done) return;
+    if (this.floor >= 2 && !this.isBoss && this.enemySystem.spawnEnabled) {
+      const kinds = this.floor >= 6 && this.rng.chance(0.3) ? 'eraser' : 'smudge';
+      this.enemySystem.spawn(kinds, 10);
+    }
+    if (this.floor >= 3 && changed.length) {
+      const p = this.player;
+      const w = this.world;
+      const far = changed.filter((i) => {
+        const d = Math.abs(w.xOf(i) - p.tx) + Math.abs(w.yOf(i) - p.ty);
+        return d >= 6 && d <= 16 && w.terrain[i] === T.GROUND;
+      });
+      const embers = 1 + Math.floor(this.floor / 4);
+      for (let k = 0; k < embers && far.length; k++) {
+        const i = far.splice(Math.floor(this.rng.next() * far.length), 1)[0];
+        if (this.hazards.ignite(this, i)) this.events.emit('ignite', { i });
+      }
+    }
   }
 
   // ---------------------------------------------------------------------

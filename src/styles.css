@@ -102,7 +102,13 @@ button {
   font-weight: bold;
   font-size: 17px;
   color: var(--ink);
-  text-shadow: 0 0 6px var(--paper), 0 0 2px var(--paper);
+}
+.floor-label span {
+  padding: 2px 12px;
+  background: rgba(236, 223, 191, 0.88);
+  border-radius: 10px 8px 11px 7px;
+  border: 1.5px solid rgba(29, 25, 21, 0.6);
+  white-space: nowrap;
 }
 .timer {
   display: flex;
@@ -330,7 +336,7 @@ button {
 /* -------------------------------------------------------------- Toasts */
 #toasts {
   position: absolute;
-  top: calc(var(--safe-top) + 92px);
+  top: calc(var(--safe-top) + 128px);
   left: 0;
   right: 0;
   display: flex;
