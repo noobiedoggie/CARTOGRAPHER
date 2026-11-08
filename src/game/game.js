@@ -91,7 +91,7 @@ export class Game {
   /** After each rewrite wave: new trouble appears in the redrawn areas. */
   onRewrite(changed) {
     if (this.dead || this.done) return;
-    if (this.floor >= 2 && !this.isBoss && this.enemySystem.spawnEnabled) {
+    if (this.floor >= 4 && !this.isBoss && this.enemySystem.spawnEnabled && this.rng.chance(0.6)) {
       const kinds = this.floor >= 6 && this.rng.chance(0.3) ? 'eraser' : 'smudge';
       this.enemySystem.spawn(kinds, 10);
     }
@@ -196,7 +196,15 @@ export class Game {
     const w = this.world;
     const p = this.player;
     const passable = (i) => (w.explored[i] ? w.canWalk(i, MOVER.PLAYER) : true);
-    const cost = (i) => (!w.explored[i] ? 1.35 : w.fire[i] > 0 ? 6 : w.ink[i] === INK.BLACK ? 0.8 : 1);
+    // Steer around enemies you can see (their tile and the ring around it).
+    const danger = new Set();
+    for (const e of this.enemies) {
+      if (!e.alive || !w.visible[e.tile]) continue;
+      const r = e.kind === 'boss' ? 2 : 1;
+      for (let dy = -r; dy <= r; dy++)
+        for (let dx = -r; dx <= r; dx++) if (w.inside(e.tx + dx, e.ty + dy)) danger.add(w.idx(e.tx + dx, e.ty + dy));
+    }
+    const cost = (i) => (!w.explored[i] ? 1.35 : w.fire[i] > 0 ? 6 : w.ink[i] === INK.BLACK ? 0.8 : 1) + (danger.has(i) ? 6 : 0);
     const path = this.pf.find(p.tx, p.ty, w.xOf(target), w.yOf(target), passable, { maxNodes: 6000, cost, partial: true });
     if (path && path.length) {
       // If we're off-centre, step back to our own tile centre first (avoids cutting corners).
@@ -503,7 +511,7 @@ export class Game {
     const r = this.rng.next();
     let text;
     let kind = 'ink';
-    if (r < 0.1 && run.hearts < 3) {
+    if (r < 0.14 && run.hearts < 3) {
       run.hearts++;
       text = '+1 heart';
       kind = 'heart';

@@ -38,6 +38,7 @@ export class Enemy {
     this.dirX = 0;
     this.dirY = 1;
     this.bramble = 0;
+    this.sated = 0; // > 0: just hit the explorer, backing off
     this.moving = false;
   }
   get tx() {
@@ -151,10 +152,11 @@ export class Smudge extends Enemy {
       this.stun -= dt;
       return;
     }
+    this.sated = Math.max(0, this.sated - dt);
     this.sense -= dt;
     if (this.sense <= 0) {
       this.sense = 0.25;
-      if (this.sees(game, BAL.smudgeSight)) {
+      if (this.sated <= 0 && this.sees(game, BAL.smudgeSight)) {
         if (this.state !== 'chase') {
           this.state = 'chase';
           this.alert = 1;
@@ -237,12 +239,13 @@ export class Eraser extends Enemy {
     // No ink anywhere near: drift towards the explorer.
     this.state = 'drift';
     const p = game.player;
-    if (this.distTo(p) < 16 && Math.random() < 0.6) this.chasePath(game, p.tx, p.ty);
+    if (this.sated <= 0 && this.distTo(p) < 10 && Math.random() < 0.35) this.chasePath(game, p.tx, p.ty);
     else this.wander(game, 7);
   }
 
   update(game, dt) {
     this.anim += dt;
+    this.sated = Math.max(0, this.sated - dt);
     if (this.stun > 0) {
       this.stun -= dt;
       return;
@@ -484,7 +487,7 @@ export class Devourer extends Enemy {
 /** Number of each enemy type on a normal floor. */
 export function enemyCounts(floor) {
   return {
-    smudge: floor <= 1 ? 1 : Math.min(6, 1 + Math.ceil(floor / 2)),
+    smudge: floor <= 1 ? 1 : Math.min(5, 1 + Math.floor(floor / 2)),
     eraser: floor >= 3 ? 1 + Math.floor((floor - 3) / 3) : 0,
     scribbler: floor >= 5 ? 1 + Math.floor((floor - 5) / 3) : 0,
   };
@@ -556,7 +559,14 @@ export class EnemySystem {
       if (!game.dead && e.distTo(p) < reach && (e.kind !== 'boss' || e.dormant <= 0)) {
         if (game.damage(e.kind)) {
           if (e.kind === 'boss') this.knockback(game, e);
-          else e.stun = Math.max(e.stun, 0.8); // give the explorer a moment to get away
+          else {
+            // Satisfied, the enemy backs off for a while - one hit per encounter.
+            e.stun = Math.max(e.stun, 0.6);
+            e.sated = BAL.satedTime;
+            e.state = 'wander';
+            e.path = [];
+            e.idle = 0;
+          }
         }
       }
     }

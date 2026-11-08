@@ -50,9 +50,9 @@ export const getUpgrade = (id) => byId[id];
 export function rollUpgrades(run, rng, n = 3) {
   const pool = UPGRADES.filter((u) => run.upg(u.id) < u.max && (!u.cond || u.cond(run)));
   const out = [];
-  if (run.hearts < 2) {
+  if (run.hearts < 3) {
     const mend = pool.find((u) => u.id === 'mend');
-    if (mend && rng.chance(0.75)) out.push(mend);
+    if (mend && rng.chance(run.hearts < 2 ? 0.85 : 0.4)) out.push(mend);
   }
   const rest = rng.shuffle(pool.filter((u) => !out.includes(u)));
   while (out.length < n && rest.length) out.push(rest.pop());

@@ -22,7 +22,7 @@ export const BAL = {
   playerSpeed: 4.0, // tiles / second
   inkPathSpeed: 1.3, // multiplier while walking on your own black ink
   vision: 5, // tiles
-  invuln: 1.5, // seconds of invulnerability after a hit
+  invuln: 1.8, // seconds of invulnerability after a hit
   tilesAcross: 13, // how many tiles fit across the screen at zoom 1
 
   // --- Ink ----------------------------------------------------------------
@@ -52,9 +52,10 @@ export const BAL = {
 
   // --- Enemies ------------------------------------------------------------
   smudgeWander: 1.1,
-  smudgeChase: 2.25, // + per-floor bonus below
-  smudgeChasePerFloor: 0.08,
-  smudgeSight: 7,
+  smudgeChase: 2.0, // + per-floor bonus below
+  smudgeChasePerFloor: 0.07,
+  smudgeSight: 6,
+  satedTime: 3.5, // after landing a hit an enemy backs off for this long
   eraserSpeed: 1.8,
   eraseTime: 0.85, // seconds to rub out one ink tile
   scribblerSpeed: 1.9,

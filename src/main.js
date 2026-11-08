@@ -20,6 +20,9 @@ import { paperCSS } from './render/paper.js';
 import { Camera } from './core/camera.js';
 import { Input } from './core/input.js';
 import { loadJSON, saveJSON, remove } from './core/storage.js';
+import { AudioFX } from './core/audio.js';
+import { HapticsFX } from './core/haptics.js';
+import { Tutorial } from './ui/tutorial.js';
 import { HUD } from './ui/hud.js';
 import { Screens } from './ui/screens.js';
 import { bindFeedback } from './ui/feedback.js';
@@ -48,8 +51,9 @@ class CartographerApp {
     this.meta = defaultMeta();
     this.savedRun = null;
     this.pointer = null;
-    this.audio = null; // set in Phase 5 (sound)
-    this.haptics = null;
+    this.audio = new AudioFX();
+    this.haptics = new HapticsFX();
+    this.tutorial = null;
 
     this.hud = new HUD({
       onUndo: () => this.game?.undo(),
@@ -83,6 +87,7 @@ class CartographerApp {
     } catch {
       /* not on a device */
     }
+    this.renderer.overFogDrawers.push((ctx, scene) => scene.game && this.tutorial?.draw(ctx, scene.game, scene.time));
     this.resize();
     this.makeMenuWorld();
     this.last = performance.now();
@@ -177,6 +182,8 @@ class CartographerApp {
   // ---------------------------------------------------------------------
   toMenu() {
     this.mode = 'menu';
+    this.endTutorial();
+    this.audio?.droneStop();
     this.game = null;
     this.hud.show(false);
     this.makeMenuWorld();
@@ -229,7 +236,16 @@ class CartographerApp {
     this.screens.hide();
     this.mode = 'game';
     this.saveRun();
-    this.onFloorStart?.(game);
+    this.endTutorial();
+    if (run.floor === 1 && !this.meta.tutorialDone) {
+      this.tutorial = new Tutorial(() => {
+        this.meta.tutorialDone = true;
+        this.saveMeta();
+      });
+    } else {
+      const name = run.floor >= BOSS_FLOOR ? 'The Devourer awaits' : `Floor ${run.floor} - find the stairs`;
+      this.hud.toast(name, 'info', 1800);
+    }
     if (this.pendingToast) {
       this.hud.toast(this.pendingToast, 'gold');
       this.pendingToast = null;
@@ -243,6 +259,8 @@ class CartographerApp {
     const pagesEarned = floorPages(run.floor);
     run.stats.pages += pagesEarned;
     this.mode = 'upgrade';
+    this.endTutorial();
+    this.audio?.droneStop();
     this.hud.show(false);
     const rng = new RNG((run.seed ^ (run.floor * 7919)) >>> 0);
     const choices = rollUpgrades(run, rng, 3);
@@ -258,9 +276,16 @@ class CartographerApp {
     this.flipTo(this.run.floor >= BOSS_FLOOR ? 'The Devourer' : `Floor ${this.run.floor}`, () => this.startFloor());
   }
 
+  endTutorial() {
+    this.tutorial?.dispose();
+    this.tutorial = null;
+  }
+
   finishRun(victory) {
     const run = this.run;
     if (!run || this.mode === 'summary') return;
+    this.endTutorial();
+    this.audio?.droneStop();
     const bonus = victory ? floorPages(BOSS_FLOOR) : 0;
     run.stats.pages += bonus;
     const m = this.meta;
@@ -368,10 +393,32 @@ class CartographerApp {
   }
 
   // ---------------------------------------------------------------------
+  /**
+   * Adaptive quality: if frames stay slow for a few seconds, drop the paper
+   * grain overlay, then the canvas resolution (keeps 60 FPS on older phones).
+   */
+  watchPerformance(rawMs) {
+    const pf = this.perf || (this.perf = { ema: 16.7, slow: 0, level: 2 });
+    pf.ema = pf.ema * 0.95 + Math.min(rawMs, 100) * 0.05;
+    if (this.mode !== 'game' || document.hidden) return;
+    pf.slow = pf.ema > 22 ? pf.slow + rawMs / 1000 : Math.max(0, pf.slow - rawMs / 2000);
+    if (pf.slow > 3 && pf.level > 0) {
+      pf.level--;
+      pf.slow = 0;
+      if (pf.level === 1) this.renderer.quality = 0;
+      else {
+        this.renderer.maxDpr = 1.25;
+        this.resize();
+      }
+    }
+  }
+
   frame(t) {
-    const dt = Math.min(0.05, (t - this.last) / 1000);
+    const raw = t - this.last;
+    const dt = Math.min(0.05, raw / 1000);
     this.last = t;
     this.time += dt;
+    this.watchPerformance(raw);
     const g = this.game;
     if (g && (this.mode === 'game' || this.mode === 'transition' || this.mode === 'upgrade' || this.mode === 'summary' || this.mode === 'pause')) {
       if (this.mode === 'game') {

@@ -45,10 +45,11 @@ export class Renderer {
     this.overFogDrawers = []; // world space, above fog
     this.screenDrawers = []; // screen space
     this.quality = 1; // 0 = low (no grain overlay)
+    this.maxDpr = 2;
   }
 
   resize(w, h) {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const dpr = Math.min(window.devicePixelRatio || 1, this.maxDpr);
     this.dpr = dpr;
     this.cssW = w;
     this.cssH = h;
@@ -184,8 +185,14 @@ export class Renderer {
     }
     ctx.drawImage(this.vignette, 0, 0, this.cssW, this.cssH);
     if (this.flash > 0) {
-      ctx.fillStyle = `rgba(${this.flashColor},${Math.min(0.45, this.flash)})`;
-      ctx.fillRect(0, 0, this.cssW, this.cssH);
+      // Red vignette that bleeds in from the screen edges when hurt.
+      const W = this.cssW;
+      const H = this.cssH;
+      const g = ctx.createRadialGradient(W / 2, H / 2, Math.min(W, H) * 0.25, W / 2, H / 2, Math.max(W, H) * 0.7);
+      g.addColorStop(0, `rgba(${this.flashColor},0)`);
+      g.addColorStop(1, `rgba(${this.flashColor},${Math.min(0.6, this.flash * 1.3)})`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
     }
     for (const d of this.screenDrawers) d(ctx, scene);
     if (game) {

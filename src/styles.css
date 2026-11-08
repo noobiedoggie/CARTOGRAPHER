@@ -192,6 +192,10 @@ button {
 .ink-bar.previewing .ink-cost {
   opacity: 1;
 }
+.ink-bar.low .ink-text {
+  color: #ffb4a0;
+  animation: pulse 1s infinite;
+}
 .ink-bar.short {
   border-color: var(--red);
   animation: shake 0.3s infinite;

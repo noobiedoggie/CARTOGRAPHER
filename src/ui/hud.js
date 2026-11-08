@@ -119,6 +119,7 @@ export class HUD {
       el.inkText.textContent = cost ? `${ink} / ${max}   -${cost}` : `${ink} / ${max}`;
     });
     this._set('short', short, (s) => el.inkBar.classList.toggle('short', s));
+    this._set('low', ink <= 5, (s) => el.inkBar.classList.toggle('low', s));
     this._set('previewing', cost > 0, (s) => el.inkBar.classList.toggle('previewing', s));
 
     // Rewrite timer
