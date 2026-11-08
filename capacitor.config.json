@@ -1,0 +1,17 @@
+{
+  "appId": "com.cartographer.game",
+  "appName": "Cartographer",
+  "webDir": "dist",
+  "android": {
+    "backgroundColor": "#3a2a1e",
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SystemBars": {
+      "insetsHandling": "css",
+      "hidden": true,
+      "style": "DARK"
+    }
+  }
+}

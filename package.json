@@ -1,0 +1,31 @@
+{
+  "name": "cartographer",
+  "version": "1.0.0",
+  "description": "CARTOGRAPHER - a roguelite where the ink you draw becomes real terrain.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "test": "node --test tests/",
+    "android:patch": "node scripts/patch-android.mjs",
+    "capacitor:add:after": "node scripts/patch-android.mjs",
+    "capacitor:sync:after": "node scripts/patch-android.mjs",
+    "apk": "npm run build && npx cap sync android && cd android && ./gradlew assembleDebug"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.6.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/core": "^8.6.0",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/preferences": "^8.0.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.6.0",
+    "vite": "^8.3.6"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
