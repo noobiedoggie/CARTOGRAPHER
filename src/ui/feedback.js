@@ -24,7 +24,7 @@ export function bindFeedback(game, { renderer, camera, hud, audio, haptics }) {
   ev.on('walk', () => A('step'));
   ev.on('noPath', (d) => {
     const [x, y] = xyC(d.x, d.y);
-    fx.ring(x, y, 'rgba(163,48,42,0.9)', 22, 0.5, 2);
+    fx.ring(x, y, 'rgba(201,84,80,0.9)', 22, 0.5, 2);
     A('deny');
   });
 
@@ -45,7 +45,7 @@ export function bindFeedback(game, { renderer, camera, hud, audio, haptics }) {
     A('scratchStop');
     A('inkSet', d.type);
     H('drawEnd');
-    const color = d.type === INK.BLUE ? '#2f62a8' : d.type === INK.RED ? '#a3302a' : d.type === INK.GOLD ? '#e0b648' : '#1d1915';
+    const color = d.type === INK.BLUE ? '#3b72c4' : d.type === INK.RED ? '#c95450' : d.type === INK.GOLD ? '#e0b648' : '#232838';
     for (const i of d.tiles.slice(0, 40)) {
       if (Math.random() < 0.4) {
         const [x, y] = tileC(i);
@@ -69,7 +69,7 @@ export function bindFeedback(game, { renderer, camera, hud, audio, haptics }) {
     hud.toast(`Undone  (+${d.refund} ink)`, 'info', 1200);
     for (const i of d.tiles.slice(0, 20)) {
       const [x, y] = tileC(i);
-      fx.burst(x, y, 2, { color: '#d9c7a0', kind: 'flake', speed: 40 });
+      fx.burst(x, y, 2, { color: '#d5d9e2', kind: 'flake', speed: 40 });
     }
   });
 
@@ -78,14 +78,14 @@ export function bindFeedback(game, { renderer, camera, hud, audio, haptics }) {
     const [x, y] = xyC(d.x, d.y);
     fx.ring(x, y, '#2a2440', 40, 0.7);
     fx.burst(x, y, 12, { color: '#2a2440', speed: 70, up: 40, gravity: 160 });
-    fx.text(x, y - 18, `+${d.gain} ink`, '#1d1915');
+    fx.text(x, y - 18, `+${d.gain} ink`, '#232838');
     A('pool');
     H('light');
   });
   ev.on('chest', (d) => {
     const [x, y] = xyC(d.x, d.y);
     fx.burst(x, y, 16, { color: '#e0b648', speed: 90, kind: 'flake', up: 30 });
-    fx.text(x, y - 20, d.text, d.kind === 'heart' ? '#a3302a' : '#6b4a2b');
+    fx.text(x, y - 20, d.text, d.kind === 'heart' ? '#c95450' : '#556080');
     A('chest');
     H('medium');
   });
@@ -99,7 +99,7 @@ export function bindFeedback(game, { renderer, camera, hud, audio, haptics }) {
     camera.shake(10);
     renderer.flash = 0.5;
     const p = game.player;
-    fx.burst(p.x * S, p.y * S, 14, { color: '#a3302a', speed: 120, size: 2.2 });
+    fx.burst(p.x * S, p.y * S, 14, { color: '#c95450', speed: 120, size: 2.2 });
     A('hit');
     H('hit');
     if (d.source === 'fire') hud.toast('Burned!', 'warn', 1000);
@@ -110,8 +110,8 @@ export function bindFeedback(game, { renderer, camera, hud, audio, haptics }) {
     const p = game.player;
     camera.shake(8);
     renderer.flash = 0.3;
-    fx.burst(p.x * S, p.y * S, 22, { color: '#1d1915', speed: 140, size: 3, gravity: 120 });
-    fx.text(p.x * S, p.y * S - 22, `-${d.amount} ink`, '#1d1915', 16);
+    fx.burst(p.x * S, p.y * S, 22, { color: '#232838', speed: 140, size: 3, gravity: 120 });
+    fx.text(p.x * S, p.y * S - 22, `-${d.amount} ink`, '#232838', 16);
     hud.flashInk();
     A('smear');
     H('hit');
@@ -146,15 +146,15 @@ export function bindFeedback(game, { renderer, camera, hud, audio, haptics }) {
   ev.on('blot', () => A('blot'));
   ev.on('blotSplash', (d) => {
     fx.burst(d.x * S, d.y * S, 8, { color: '#1c1424', speed: 70, size: 2 });
-    if (d.blocked) fx.text(d.x * S, d.y * S - 12, 'blocked!', '#a3302a', 13);
+    if (d.blocked) fx.text(d.x * S, d.y * S - 12, 'blocked!', '#c95450', 13);
   });
   ev.on('trapped', (d) => {
     const water = d.into === 'water';
     fx.burst(d.x * S, d.y * S, 18, { color: water ? '#6f9bbf' : '#211a26', speed: 90, up: water ? 60 : 0, gravity: water ? 200 : 0 });
-    fx.text(d.x * S, d.y * S - 18, 'Trapped!', '#6b4a2b');
+    fx.text(d.x * S, d.y * S - 18, 'Trapped!', '#556080');
     A('trapped');
   });
-  ev.on('stunned', (d) => fx.text(d.e.x * S, d.e.y * S - 20, 'snagged!', '#a3302a', 12));
+  ev.on('stunned', (d) => fx.text(d.e.x * S, d.e.y * S - 20, 'snagged!', '#c95450', 12));
   ev.on('ignite', (d) => {
     const [x, y] = tileC(d.i);
     fx.burst(x, y, 8, { kind: 'ember', speed: 60, up: 40, life: 1.2 });
@@ -166,7 +166,7 @@ export function bindFeedback(game, { renderer, camera, hud, audio, haptics }) {
   });
   ev.on('burnt', (d) => {
     const [x, y] = tileC(d.i);
-    fx.burst(x, y, 8, { color: '#5a4a3a', kind: 'flake', speed: 40, up: 30 });
+    fx.burst(x, y, 8, { color: '#4a5060', kind: 'flake', speed: 40, up: 30 });
   });
 
   // --- The world rewrites itself ------------------------------------------

@@ -5,8 +5,8 @@
  * `npx cap sync` both apply it). Idempotent - safe to run many times.
  *
  *  - locks the activity to portrait
- *  - parchment launch theme / splash (no Capacitor logo)
- *  - generates the launcher icons (compass rose on parchment) as PNGs with a
+ *  - paper-coloured launch theme / splash (no Capacitor logo)
+ *  - generates the launcher icons (compass rose on paper) as PNGs with a
  *    tiny built-in rasterizer + PNG encoder - no image tools needed
  */
 import fs from 'node:fs';
@@ -35,14 +35,14 @@ if (!manifest.includes('android:screenOrientation')) {
 // ---------------------------------------------------------------------------
 // 2. Colours, launch theme and splash
 // ---------------------------------------------------------------------------
-const PARCHMENT = '#ECDFBF';
-const DESK = '#3A2A1E';
+const PAPER_HEX = '#F0F1EC';
+const DESK = '#252A3A';
 fs.writeFileSync(
   path.join(res, 'values', 'cartographer_colors.xml'),
   `<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="cartographer_desk">${DESK}</color>
-    <color name="cartographer_parchment">${PARCHMENT}</color>
+    <color name="cartographer_paper">${PAPER_HEX}</color>
 </resources>
 `,
 );
@@ -51,7 +51,7 @@ fs.writeFileSync(
   bgPath,
   `<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">${PARCHMENT}</color>
+    <color name="ic_launcher_background">${PAPER_HEX}</color>
 </resources>
 `,
 );
@@ -133,10 +133,10 @@ function encodePNG(w, h, rgba) {
 }
 
 const hex = (s) => [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)];
-const INKC = hex('#1D1915');
-const RED = hex('#A3302A');
-const SEPIA = hex('#6B4A2B');
-const PAPER = hex(PARCHMENT);
+const INKC = hex('#232838');
+const RED = hex('#C95450');
+const SEPIA = hex('#556080');
+const PAPER = hex(PAPER_HEX);
 
 function inPoly(x, y, pts) {
   let inside = false;
@@ -178,7 +178,7 @@ function roseLayers(s) {
 
 /**
  * Rasterise an icon. kind: 'foreground' (transparent, adaptive safe zone),
- * 'square' (rounded parchment tile) or 'round' (parchment disc).
+ * 'square' (rounded paper tile) or 'round' (paper disc).
  */
 function renderIcon(size, kind) {
   const buf = Buffer.alloc(size * size * 4);
@@ -255,4 +255,4 @@ for (const [d, m] of Object.entries(DENSITIES)) {
   fs.writeFileSync(path.join(dir, 'ic_launcher_foreground.png'), renderIcon(Math.round(108 * m), 'foreground'));
 }
 
-console.log('[patch-android] portrait lock, parchment splash and compass icons applied');
+console.log('[patch-android] portrait lock, paper splash and compass icons applied');

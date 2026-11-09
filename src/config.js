@@ -71,8 +71,8 @@ export const BAL = {
 
 /** Ink colours used by both the renderer and the DOM HUD. */
 export const INK_COLORS = {
-  1: '#1d1915', // black
-  2: '#2f62a8', // blue
-  3: '#a3302a', // red
-  4: '#c9962b', // gold
+  1: '#232838', // black
+  2: '#3b72c4', // blue
+  3: '#c95450', // red
+  4: '#d9a33a', // gold
 };

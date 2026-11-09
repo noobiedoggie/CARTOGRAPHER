@@ -11,7 +11,7 @@ import { hash2 } from '../core/rng.js';
 import { drawInkTile } from './inkPainter.js';
 
 const S = TILE;
-const SEPIA = 'rgba(95,66,38,0.55)';
+const SEPIA = 'rgba(70,80,110,0.55)';
 
 /** Wobbly edge line from (ax,ay) to (bx,by). */
 function wobbleLine(ctx, ax, ay, bx, by, h, amp) {
@@ -51,7 +51,7 @@ export function paintTerrain(ctx, world, x0, y0, x1, y1) {
       const py = y * S;
       if (t === T.RUINS) paintRuin(ctx, x, y, px, py);
       else if (hh < 0.14) {
-        ctx.fillStyle = 'rgba(110,80,45,0.45)';
+        ctx.fillStyle = 'rgba(90,104,130,0.45)';
         const n = 3 + Math.floor(hh * 20);
         for (let k = 0; k < n; k++) {
           const dx = hash2(x, y, 40 + k) * S;
@@ -59,7 +59,7 @@ export function paintTerrain(ctx, world, x0, y0, x1, y1) {
           ctx.fillRect(px + dx, py + dy, 1.3, 1.3);
         }
       } else if (hh < 0.21) {
-        ctx.strokeStyle = 'rgba(105,95,45,0.5)';
+        ctx.strokeStyle = 'rgba(80,130,100,0.5)';
         ctx.lineWidth = 1;
         const gx = px + 6 + hash2(x, y, 9) * (S - 12);
         const gy = py + 8 + hash2(x, y, 10) * (S - 14);
@@ -82,9 +82,9 @@ export function paintTerrain(ctx, world, x0, y0, x1, y1) {
   }
 
   // ---- Water ------------------------------------------------------------
-  ctx.fillStyle = 'rgba(118,156,170,0.55)';
+  ctx.fillStyle = 'rgba(120,175,205,0.55)';
   for (let y = ay; y < by; y++) for (let x = ax; x < bx; x++) if (terrain[y * w + x] === T.WATER) ctx.fillRect(x * S, y * S, S, S);
-  ctx.strokeStyle = 'rgba(48,88,112,0.55)';
+  ctx.strokeStyle = 'rgba(48,96,138,0.55)';
   ctx.lineWidth = 1.2;
   ctx.beginPath();
   for (let y = ay; y < by; y++)
@@ -98,14 +98,14 @@ export function paintTerrain(ctx, world, x0, y0, x1, y1) {
       ctx.quadraticCurveTo(wx + 7.5, wy + 3, wx + 10, wy);
     }
   ctx.stroke();
-  edgeLines(ctx, ax, ay, bx, by, tAt, T.WATER, (t) => t !== T.WATER, 'rgba(52,92,116,0.9)', 1.6, 2.5, 0);
-  edgeLines(ctx, ax, ay, bx, by, tAt, T.WATER, (t) => t !== T.WATER && t !== T.ROCK, 'rgba(52,92,116,0.32)', 1.1, 2, 4.5);
+  edgeLines(ctx, ax, ay, bx, by, tAt, T.WATER, (t) => t !== T.WATER, 'rgba(48,96,138,0.9)', 1.6, 2.5, 0);
+  edgeLines(ctx, ax, ay, bx, by, tAt, T.WATER, (t) => t !== T.WATER && t !== T.ROCK, 'rgba(48,96,138,0.32)', 1.1, 2, 4.5);
 
   // ---- Chasms -----------------------------------------------------------
-  ctx.fillStyle = 'rgb(50,37,30)';
+  ctx.fillStyle = 'rgb(42,46,72)';
   for (let y = ay; y < by; y++) for (let x = ax; x < bx; x++) if (terrain[y * w + x] === T.CHASM) ctx.fillRect(x * S, y * S, S, S);
   // depth texture
-  ctx.strokeStyle = 'rgba(120,92,64,0.28)';
+  ctx.strokeStyle = 'rgba(92,100,140,0.28)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   for (let y = ay; y < by; y++)
@@ -126,11 +126,11 @@ export function paintTerrain(ctx, world, x0, y0, x1, y1) {
       const above = tAt(x, y - 1);
       if (above === T.CHASM || above === T.ROCK) continue;
       const g = ctx.createLinearGradient(0, y * S, 0, y * S + S * 0.5);
-      g.addColorStop(0, 'rgba(150,115,78,0.95)');
-      g.addColorStop(1, 'rgba(50,37,30,0)');
+      g.addColorStop(0, 'rgba(118,126,160,0.95)');
+      g.addColorStop(1, 'rgba(42,46,72,0)');
       ctx.fillStyle = g;
       ctx.fillRect(x * S, y * S, S, S * 0.5);
-      ctx.strokeStyle = 'rgba(60,40,25,0.6)';
+      ctx.strokeStyle = 'rgba(52,58,86,0.6)';
       ctx.lineWidth = 1;
       ctx.beginPath();
       for (let k = 0; k < 4; k++) {
@@ -140,11 +140,11 @@ export function paintTerrain(ctx, world, x0, y0, x1, y1) {
       }
       ctx.stroke();
     }
-  edgeLines(ctx, ax, ay, bx, by, tAt, T.CHASM, (t) => t !== T.CHASM && t !== T.ROCK, 'rgba(28,18,12,0.95)', 2.2, 5, 0, true);
+  edgeLines(ctx, ax, ay, bx, by, tAt, T.CHASM, (t) => t !== T.CHASM && t !== T.ROCK, 'rgba(26,28,46,0.95)', 2.2, 5, 0, true);
 
   // ---- Void: a hole torn through the page, the dark desk showing below ----
   let anyVoid = false;
-  ctx.fillStyle = '#20150e';
+  ctx.fillStyle = '#1b1f2e';
   for (let y = ay; y < by; y++)
     for (let x = ax; x < bx; x++)
       if (terrain[y * w + x] === T.VOID) {
@@ -153,7 +153,7 @@ export function paintTerrain(ctx, world, x0, y0, x1, y1) {
       }
   if (anyVoid) {
     // wood grain of the desk
-    ctx.strokeStyle = 'rgba(90,60,38,0.55)';
+    ctx.strokeStyle = 'rgba(66,76,104,0.55)';
     ctx.lineWidth = 1;
     ctx.beginPath();
     for (let y = ay; y < by; y++)
@@ -169,8 +169,8 @@ export function paintTerrain(ctx, world, x0, y0, x1, y1) {
     // inner shadow under the torn lip
     edgeLines(ctx, ax, ay, bx, by, tAt, T.VOID, (t) => t !== T.VOID && t !== T.ROCK, 'rgba(0,0,0,0.45)', 6, 4, 3, true);
     // ragged white paper fibres at the tear, then a thin ink edge
-    edgeLines(ctx, ax, ay, bx, by, tAt, T.VOID, (t) => t !== T.VOID, 'rgba(250,243,222,0.95)', 3.4, 7, 0, true);
-    edgeLines(ctx, ax, ay, bx, by, tAt, T.VOID, (t) => t !== T.VOID, 'rgba(90,64,40,0.7)', 1, 7, -1.5, true);
+    edgeLines(ctx, ax, ay, bx, by, tAt, T.VOID, (t) => t !== T.VOID, 'rgba(250,250,248,0.95)', 3.4, 7, 0, true);
+    edgeLines(ctx, ax, ay, bx, by, tAt, T.VOID, (t) => t !== T.VOID, 'rgba(66,76,104,0.7)', 1, 7, -1.5, true);
   }
 
   // ---- Rock -------------------------------------------------------------
@@ -184,10 +184,10 @@ export function paintTerrain(ctx, world, x0, y0, x1, y1) {
         anyRock = true;
       }
   if (anyRock) {
-    ctx.fillStyle = 'rgba(146,112,76,0.42)';
+    ctx.fillStyle = 'rgba(120,128,160,0.42)';
     ctx.fill();
     ctx.clip();
-    hatch(ctx, ax * S, ay * S, bx * S, by * S, 7, 1, 'rgba(78,54,32,0.42)', 1.05);
+    hatch(ctx, ax * S, ay * S, bx * S, by * S, 7, 1, 'rgba(66,74,104,0.42)', 1.05);
     // Cross-hatch the deep interior for depth.
     ctx.beginPath();
     let anyDeep = false;
@@ -203,15 +203,15 @@ export function paintTerrain(ctx, world, x0, y0, x1, y1) {
       }
     if (anyDeep) {
       ctx.clip();
-      ctx.fillStyle = 'rgba(110,80,52,0.18)';
+      ctx.fillStyle = 'rgba(90,98,130,0.18)';
       ctx.fillRect(ax * S, ay * S, (bx - ax) * S, (by - ay) * S);
-      hatch(ctx, ax * S, ay * S, bx * S, by * S, 7, -1, 'rgba(78,54,32,0.3)', 1);
+      hatch(ctx, ax * S, ay * S, bx * S, by * S, 7, -1, 'rgba(66,74,104,0.3)', 1);
     }
   }
   ctx.restore();
-  edgeLines(ctx, ax, ay, bx, by, tAt, T.ROCK, (t) => t !== T.ROCK, 'rgba(58,40,24,0.9)', 2.1, 3.5, 0);
+  edgeLines(ctx, ax, ay, bx, by, tAt, T.ROCK, (t) => t !== T.ROCK, 'rgba(44,50,74,0.9)', 2.1, 3.5, 0);
   // Pebbles at the cave foot
-  ctx.strokeStyle = 'rgba(70,48,28,0.55)';
+  ctx.strokeStyle = 'rgba(58,66,94,0.55)';
   ctx.lineWidth = 1;
   ctx.beginPath();
   for (let y = ay; y < by; y++)
@@ -304,13 +304,13 @@ function edgeLines(ctx, ax, ay, bx, by, tAt, kind, against, color, width, amp, i
 
 function paintRuin(ctx, x, y, px, py) {
   const hh = hash2(x, y, 140);
-  ctx.strokeStyle = 'rgba(120,90,55,0.35)';
+  ctx.strokeStyle = 'rgba(110,118,140,0.35)';
   ctx.lineWidth = 1;
   ctx.strokeRect(px + 1.5, py + 1.5, S - 3, S - 3);
   if (hh < 0.35) {
     // Broken wall stub of bricks
-    ctx.fillStyle = 'rgba(176,146,104,0.75)';
-    ctx.strokeStyle = 'rgba(80,58,34,0.8)';
+    ctx.fillStyle = 'rgba(190,186,178,0.75)';
+    ctx.strokeStyle = 'rgba(62,70,96,0.8)';
     const n = 2 + Math.floor(hh * 6);
     for (let k = 0; k < n; k++) {
       const bx = px + 3 + k * 7;
@@ -320,8 +320,8 @@ function paintRuin(ctx, x, y, px, py) {
     }
   } else if (hh < 0.47) {
     // Column
-    ctx.fillStyle = 'rgba(196,172,132,0.9)';
-    ctx.strokeStyle = 'rgba(80,58,34,0.85)';
+    ctx.fillStyle = 'rgba(206,203,196,0.9)';
+    ctx.strokeStyle = 'rgba(62,70,96,0.85)';
     ctx.lineWidth = 1.4;
     ctx.beginPath();
     ctx.arc(px + S / 2, py + S / 2, S * 0.2, 0, Math.PI * 2);
@@ -331,7 +331,7 @@ function paintRuin(ctx, x, y, px, py) {
     ctx.arc(px + S / 2, py + S / 2, S * 0.1, 0, Math.PI * 2);
     ctx.stroke();
   } else if (hh < 0.6) {
-    ctx.strokeStyle = 'rgba(100,72,42,0.45)';
+    ctx.strokeStyle = 'rgba(70,80,110,0.45)';
     ctx.beginPath();
     ctx.moveTo(px + 4, py + S * 0.6);
     ctx.lineTo(px + S * 0.45, py + S * 0.52);
@@ -372,9 +372,9 @@ function paintFeature(ctx, t, x, y) {
       break;
     case T.POOL_DRY:
       blob(ctx, cx, cy, S * 0.4, x, y, 200);
-      ctx.fillStyle = 'rgba(40,32,34,0.1)';
+      ctx.fillStyle = 'rgba(40,44,60,0.1)';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(40,32,34,0.35)';
+      ctx.strokeStyle = 'rgba(40,44,60,0.35)';
       ctx.stroke();
       break;
     case T.CHEST:
@@ -383,23 +383,23 @@ function paintFeature(ctx, t, x, y) {
       const bh = S * 0.36;
       const bx = cx - bw / 2;
       const by = cy - bh / 2 + S * 0.06;
-      ctx.fillStyle = 'rgba(60,40,20,0.25)';
+      ctx.fillStyle = 'rgba(35,40,56,0.25)';
       ctx.fillRect(bx + 2, by + 3, bw, bh);
-      ctx.fillStyle = '#b37b3d';
+      ctx.fillStyle = '#c7854f';
       ctx.fillRect(bx, by, bw, bh);
-      ctx.strokeStyle = '#3d2610';
+      ctx.strokeStyle = '#2a2f45';
       ctx.strokeRect(bx, by, bw, bh);
       if (t === T.CHEST) {
-        ctx.fillStyle = '#9a6530';
+        ctx.fillStyle = '#a86c3e';
         ctx.fillRect(bx, by - S * 0.12, bw, S * 0.14);
         ctx.strokeRect(bx, by - S * 0.12, bw, S * 0.14);
         ctx.fillStyle = '#e0b648';
         ctx.fillRect(cx - 2.5, by - 2, 5, 6);
         ctx.strokeRect(cx - 2.5, by - 2, 5, 6);
       } else {
-        ctx.fillStyle = '#2a1a0c';
+        ctx.fillStyle = '#23283a';
         ctx.fillRect(bx + 2, by + 1, bw - 4, bh * 0.4);
-        ctx.fillStyle = '#9a6530';
+        ctx.fillStyle = '#a86c3e';
         ctx.beginPath();
         ctx.moveTo(bx, by);
         ctx.lineTo(bx + bw, by);
@@ -419,18 +419,18 @@ function paintFeature(ctx, t, x, y) {
     }
     case T.EXIT: {
       const r = S * 0.4;
-      ctx.fillStyle = '#2b2018';
+      ctx.fillStyle = '#262b3d';
       ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
-      ctx.strokeStyle = '#120c08';
+      ctx.strokeStyle = '#161a28';
       ctx.lineWidth = 2;
       ctx.strokeRect(cx - r, cy - r, r * 2, r * 2);
       // Steps receding into the dark
       for (let k = 0; k < 4; k++) {
         const inset = k * r * 0.2;
         const yy = cy - r + k * r * 0.45 + 3;
-        ctx.fillStyle = `rgba(${190 - k * 35},${160 - k * 30},${120 - k * 25},1)`;
+        ctx.fillStyle = `rgba(${200 - k * 38},${206 - k * 38},${222 - k * 34},1)`;
         ctx.fillRect(cx - r + inset + 2, yy, (r - inset) * 2 - 4, r * 0.3);
-        ctx.strokeStyle = 'rgba(20,12,6,0.9)';
+        ctx.strokeStyle = 'rgba(24,28,42,0.9)';
         ctx.lineWidth = 1;
         ctx.strokeRect(cx - r + inset + 2, yy, (r - inset) * 2 - 4, r * 0.3);
       }
@@ -438,8 +438,8 @@ function paintFeature(ctx, t, x, y) {
     }
     case T.ANCHOR:
     case T.ANCHOR_LIT: {
-      ctx.strokeStyle = t === T.ANCHOR_LIT ? '#8a6414' : '#3a2a1a';
-      ctx.fillStyle = t === T.ANCHOR_LIT ? 'rgba(230,190,80,0.6)' : 'rgba(150,120,80,0.35)';
+      ctx.strokeStyle = t === T.ANCHOR_LIT ? '#8a6414' : '#2a3045';
+      ctx.fillStyle = t === T.ANCHOR_LIT ? 'rgba(230,190,80,0.6)' : 'rgba(150,158,180,0.35)';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.arc(cx, cy, S * 0.4, 0, Math.PI * 2);

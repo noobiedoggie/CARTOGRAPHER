@@ -3,7 +3,7 @@
   "appName": "Cartographer",
   "webDir": "dist",
   "android": {
-    "backgroundColor": "#3a2a1e",
+    "backgroundColor": "#252a3a",
     "allowMixedContent": false,
     "webContentsDebuggingEnabled": false
   },

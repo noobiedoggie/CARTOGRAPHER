@@ -1,5 +1,5 @@
 /**
- * Menu screens (DOM overlays on parchment):
+ * Menu screens (DOM overlays on paper):
  * main menu, Atlas (meta shop), how-to-play, settings, upgrade choice,
  * pause, game over and victory.
  */
@@ -91,7 +91,7 @@ export class Screens {
     const inkRows = INK_UNLOCKS.map((u) => {
       const owned = m.unlocked[u.id];
       return `<div class="shop-item">
-        <span class="skin-dot" style="background:${u.id === 'blue' ? '#2f62a8' : u.id === 'red' ? '#a3302a' : 'radial-gradient(circle at 35% 35%,#f6dd8a,#c9962b)'}"></span>
+        <span class="skin-dot" style="background:${u.id === 'blue' ? '#3b72c4' : u.id === 'red' ? '#c95450' : 'radial-gradient(circle at 35% 35%,#f6dd8a,#d9a33a)'}"></span>
         <div class="txt"><b>${u.name}</b><div>${u.desc}</div></div>
         ${owned ? '<span class="owned">owned</span>' : `<button class="btn" data-action="buyInk" data-arg="${u.id}" ${m.pages < u.cost ? 'disabled' : ''}>${pages(u.cost)}</button>`}
       </div>`;
@@ -133,7 +133,7 @@ export class Screens {
       `<div class="panel howto">
         <h2>How to play</h2>
         <p><b>Tap</b> the map to walk there. The <b>golden light</b> and the compass needle at the screen edge point to the stairs.</p>
-        <p><b>Press, hold, then drag</b> to draw with ink. Each tile costs 1 ink - the bubble shows the cost and turns <b style="color:#a3302a">red</b> if you can't afford it. Lift your finger and the line becomes real.</p>
+        <p><b>Press, hold, then drag</b> to draw with ink. Each tile costs 1 ink - the bubble shows the cost and turns <b style="color:#c95450">red</b> if you can't afford it. Lift your finger and the line becomes real.</p>
         <p>Ravines, rivers and <b>torn holes</b> cut every floor: <b>black</b> ink bridges them. You get <b>blue</b> (water - Smudges can't cross it) on floor 2 and <b>red</b> (walls) on floor 3.</p>
         <p><b>Undo</b> within 2 seconds for a 50% refund. <b>Quick swipe</b> to look around, <b>pinch</b> to zoom.</p>
         <p>Every minute the world <b>rewrites itself</b> and tears a rift across your way. Anything you can't see and haven't inked is redrawn - <b>your ink is the only thing that stays</b>.</p>
@@ -189,7 +189,7 @@ export class Screens {
         <p class="subtitle" style="margin:0">+${info.pages} pages &middot; next: ${info.next >= BOSS_FLOOR ? '<b>The Devourer</b>' : `Floor ${info.next}`}</p>
       </div>
       <div class="cards">${cards}</div>
-      <p class="note" style="color:#f2e6c8">Choose one</p>`,
+      <p class="note" style="color:#f3f4ef">Choose one</p>`,
       'dim',
     );
   }
@@ -199,13 +199,13 @@ export class Screens {
     const info = {
       2: {
         name: 'Blue ink',
-        color: '#2f62a8',
+        color: '#3b72c4',
         what: 'Paints <b>water</b>.',
         how: '<b>Smudges cannot cross water.</b> Draw a line of blue between you and them. It also puts out fire.',
       },
       3: {
         name: 'Red ink',
-        color: '#a3302a',
+        color: '#c95450',
         what: 'Builds <b>walls</b>.',
         how: 'Walls stop <b>everything</b>: Smudges, Erasers, even ink blots. Box yourself in, or wall off a crossing. Careful - you can\'t walk through them either.',
       },

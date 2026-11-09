@@ -5,11 +5,11 @@
 import { TILE } from '../config.js';
 
 const S = TILE;
-const INK = '#1d1915';
+const INK = '#232838';
 
 /** Explorer outfits (unlockable in the Atlas). */
 export const SKINS = {
-  classic: { name: 'The Cartographer', coat: '#6b4a2b', hat: '#3b2a1c', scarf: '#a3302a', face: '#f1e2c3', cost: 0 },
+  classic: { name: 'The Cartographer', coat: '#556080', hat: '#2a3045', scarf: '#c95450', face: '#f1e2c3', cost: 0 },
   scarlet: { name: 'Scarlet Wayfarer', coat: '#93302a', hat: '#2b1b14', scarf: '#e0b648', face: '#f1e2c3', cost: 12 },
   verdant: { name: 'Verdant Scout', coat: '#456f3c', hat: '#27361f', scarf: '#d8c27a', face: '#f1e2c3', cost: 20 },
   nocturne: { name: 'Night Surveyor', coat: '#2d3150', hat: '#15172a', scarf: '#86acd9', face: '#e9dcc2', cost: 35 },
@@ -25,7 +25,7 @@ export function drawPlayer(ctx, p, skin, time, drawing) {
   if (p.invuln > 0 && Math.floor(time * 14) % 2 === 0) ctx.globalAlpha = 0.45;
 
   // Shadow
-  ctx.fillStyle = 'rgba(50,32,16,0.28)';
+  ctx.fillStyle = 'rgba(30,34,52,0.28)';
   ctx.beginPath();
   ctx.ellipse(px, py + S * 0.3, S * 0.27, S * 0.1, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -64,7 +64,7 @@ export function drawPlayer(ctx, p, skin, time, drawing) {
   ctx.fill();
   ctx.stroke();
   // Satchel strap
-  ctx.strokeStyle = 'rgba(29,25,21,0.6)';
+  ctx.strokeStyle = 'rgba(35,40,56,0.6)';
   ctx.lineWidth = 1.2;
   ctx.beginPath();
   ctx.moveTo(px - S * 0.12, py - S * 0.08 + bob);
@@ -113,7 +113,7 @@ export function drawPlayer(ctx, p, skin, time, drawing) {
     ctx.save();
     ctx.translate(px + S * 0.26, py - S * 0.05 + bob);
     ctx.rotate(-0.7 + Math.sin(time * 18) * 0.15);
-    ctx.fillStyle = '#f4ecd8';
+    ctx.fillStyle = '#f6f7f3';
     ctx.strokeStyle = INK;
     ctx.lineWidth = 1;
     ctx.beginPath();
@@ -132,7 +132,7 @@ export function drawDestination(ctx, x, y, time) {
   const cx = (x + 0.5) * S;
   const cy = (y + 0.5) * S;
   const r = S * 0.2 * (1 + Math.sin(time * 6) * 0.08);
-  ctx.strokeStyle = 'rgba(163,48,42,0.85)';
+  ctx.strokeStyle = 'rgba(201,84,80,0.85)';
   ctx.lineWidth = 2.5;
   ctx.lineCap = 'round';
   ctx.beginPath();
@@ -185,13 +185,13 @@ export function drawSmudge(ctx, e, time) {
   // eyes
   const lx = e.dirX * 2.5;
   const ly = e.dirY * 2;
-  ctx.fillStyle = chase ? '#ffd9c2' : '#f2e8ce';
+  ctx.fillStyle = chase ? '#ffd9c2' : '#f3f4f0';
   for (const s of [-1, 1]) {
     ctx.beginPath();
     ctx.ellipse(px + s * S * 0.11 + lx, py - S * 0.07 + ly, S * 0.07, chase ? S * 0.05 : S * 0.08, s * (chase ? 0.4 : 0), 0, Math.PI * 2);
     ctx.fill();
   }
-  ctx.fillStyle = chase ? '#a3302a' : '#1d1915';
+  ctx.fillStyle = chase ? '#c95450' : '#232838';
   for (const s of [-1, 1]) {
     ctx.beginPath();
     ctx.arc(px + s * S * 0.11 + lx * 1.4, py - S * 0.06 + ly * 1.3, S * 0.03, 0, Math.PI * 2);
@@ -267,7 +267,7 @@ export function drawScribbler(ctx, e, time) {
   }
   ctx.stroke();
   // eye
-  ctx.fillStyle = '#f2e8ce';
+  ctx.fillStyle = '#f3f4f0';
   ctx.beginPath();
   ctx.arc(px, py - S * 0.06, S * 0.08, 0, Math.PI * 2);
   ctx.fill();
@@ -327,7 +327,7 @@ export function drawDevourer(ctx, e, time, alpha = 1) {
   // eyes
   const angry = e.dormant <= 0;
   for (const s of [-1, 1]) {
-    ctx.fillStyle = '#f7ead0';
+    ctx.fillStyle = '#f4f5f2';
     ctx.beginPath();
     ctx.ellipse(s * S * 0.42, -S * 0.42, S * 0.2, angry ? S * 0.12 : S * 0.04, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -350,7 +350,7 @@ export function drawDevourer(ctx, e, time, alpha = 1) {
   ctx.ellipse(0, S * 0.3, S * 0.75, S * 0.32 * open + 2, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
-  ctx.fillStyle = '#f2e8ce';
+  ctx.fillStyle = '#f3f4f0';
   for (let k = -3; k <= 3; k++) {
     ctx.beginPath();
     ctx.moveTo(k * S * 0.2 - 5, S * 0.3 - S * 0.3 * open);
@@ -415,9 +415,9 @@ function drawStatus(ctx, e, x, y, time) {
     ctx.font = 'bold 20px Georgia, serif';
     ctx.textAlign = 'center';
     ctx.lineWidth = 3;
-    ctx.strokeStyle = '#f2e8ce';
+    ctx.strokeStyle = '#f3f4f0';
     ctx.strokeText('!', x, y - (1 - e.alert) * 6);
-    ctx.fillStyle = '#a3302a';
+    ctx.fillStyle = '#c95450';
     ctx.fillText('!', x, y - (1 - e.alert) * 6);
     ctx.restore();
   }

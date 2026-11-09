@@ -33,7 +33,7 @@ export class Effects {
         life,
         max: life,
         size: (o.size ?? 2.5) * (0.6 + Math.random() * 0.8),
-        color: o.color ?? '#1d1915',
+        color: o.color ?? '#232838',
         g: o.gravity ?? 0,
         kind: o.kind ?? 'dot',
         rot: Math.random() * 6,
@@ -46,7 +46,7 @@ export class Effects {
     this.rings.push({ x, y, color, radius, life, max: life, width });
   }
 
-  text(x, y, str, color = '#1d1915', size = 15) {
+  text(x, y, str, color = '#232838', size = 15) {
     this.texts.push({ x, y, str, color, size, life: 1.3, max: 1.3 });
   }
 
@@ -107,7 +107,7 @@ export class Effects {
       ctx.globalAlpha = Math.min(1, (t.life / t.max) * 2);
       ctx.font = `bold ${t.size}px "Segoe Print", "Bradley Hand", casual, cursive`;
       ctx.lineWidth = 3.5;
-      ctx.strokeStyle = 'rgba(240,228,198,0.95)';
+      ctx.strokeStyle = 'rgba(244,245,241,0.95)';
       ctx.strokeText(t.str, t.x, t.y);
       ctx.fillStyle = t.color;
       ctx.fillText(t.str, t.x, t.y);

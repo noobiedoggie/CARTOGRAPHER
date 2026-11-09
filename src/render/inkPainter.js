@@ -102,7 +102,7 @@ function drawBridge(ctx, arms, h) {
   const hasV = has(0, -1) || has(0, 1);
   const hasH = has(-1, 0) || has(1, 0);
   // Deck: centre square + arms to linked neighbours (a "plus" shape).
-  ctx.fillStyle = '#c9a46c';
+  ctx.fillStyle = '#d1b183';
   ctx.fillRect(-half, -half, half * 2, half * 2);
   if (has(0, -1)) ctx.fillRect(-half, -E, half * 2, E - half);
   if (has(0, 1)) ctx.fillRect(-half, half, half * 2, E - half);
@@ -211,13 +211,13 @@ function drawWall(ctx, arms, h) {
   const y0 = has(0, -1) ? -S * 0.5 : -half;
   const y1 = has(0, 1) ? S * 0.5 : half;
   // Drop shadow
-  ctx.fillStyle = 'rgba(40,12,6,0.28)';
+  ctx.fillStyle = 'rgba(40,18,28,0.28)';
   ctx.fillRect(x0 + 2, y0 + 3, x1 - x0, y1 - y0);
   // Body
   ctx.fillStyle = INK_COLORS[3];
   ctx.fillRect(x0, y0, x1 - x0, y1 - y0);
   // Bricks
-  ctx.strokeStyle = 'rgba(55,10,6,0.55)';
+  ctx.strokeStyle = 'rgba(90,24,26,0.55)';
   ctx.lineWidth = 1.1;
   ctx.beginPath();
   const rows = 3;
@@ -248,7 +248,7 @@ function drawWall(ctx, arms, h) {
     ctx.lineTo(x1 - 2, y0 + 2);
     ctx.stroke();
   }
-  ctx.strokeStyle = 'rgba(45,8,4,0.9)';
+  ctx.strokeStyle = 'rgba(70,22,26,0.9)';
   ctx.lineWidth = 1.8;
   ctx.beginPath();
   const wob = (h - 0.5) * 1.5;

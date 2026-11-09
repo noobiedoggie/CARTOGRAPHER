@@ -159,7 +159,7 @@ export class Tutorial {
     const cy = (w.yOf(this.target) + 0.5) * S;
     const r = S * (0.7 + 0.12 * Math.sin(time * 5));
     ctx.save();
-    ctx.strokeStyle = 'rgba(163,48,42,0.9)';
+    ctx.strokeStyle = 'rgba(201,84,80,0.9)';
     ctx.lineWidth = 3;
     ctx.setLineDash([6, 5]);
     ctx.lineDashOffset = -time * 20;
@@ -168,7 +168,7 @@ export class Tutorial {
     ctx.stroke();
     ctx.setLineDash([]);
     const b = Math.sin(time * 6) * 5;
-    ctx.fillStyle = '#a3302a';
+    ctx.fillStyle = '#c95450';
     ctx.beginPath();
     ctx.moveTo(cx, cy - r - 4 + b);
     ctx.lineTo(cx - 9, cy - r - 18 + b);

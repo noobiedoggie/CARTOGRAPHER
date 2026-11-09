@@ -68,5 +68,5 @@ export function applyUpgrade(run, id) {
 }
 
 export function upgradeIconSVG(u) {
-  return `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="${u.icon}" fill="none" stroke="#1d1915" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+  return `<svg viewBox="0 0 24 24" width="30" height="30" aria-hidden="true"><path d="${u.icon}" fill="none" stroke="#232838" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }

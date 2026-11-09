@@ -1,5 +1,5 @@
 /**
- * Fog of war, drawn as aged blank parchment over the map.
+ * Fog of war, drawn as a soft grey-blue mist over the paper.
  *
  * The fog is a small RGBA bitmap (4x4 pixels per tile) that is magnified with
  * bilinear smoothing, which gives soft vision edges for free. Each tile has:
@@ -14,8 +14,8 @@ import { mulberry32 } from '../core/rng.js';
 
 const SUB = 4;
 const SKETCH_ALPHA = 0.5;
-const FOG = [214, 197, 160];
-const SKETCH = [228, 214, 180];
+const FOG = [214, 218, 228]; // cool grey-blue mist
+const SKETCH = [238, 240, 244];
 
 export class FogRenderer {
   constructor(world) {

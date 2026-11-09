@@ -70,8 +70,8 @@ export class Renderer {
     c.height = h;
     const g = c.getContext('2d');
     const grad = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
-    grad.addColorStop(0, 'rgba(60,36,16,0)');
-    grad.addColorStop(1, 'rgba(60,36,16,0.42)');
+    grad.addColorStop(0, 'rgba(22,28,48,0)');
+    grad.addColorStop(1, 'rgba(22,28,48,0.42)');
     g.fillStyle = grad;
     g.fillRect(0, 0, w, h);
     this.vignette = c;
@@ -121,7 +121,7 @@ export class Renderer {
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.globalAlpha = 1;
     ctx.globalCompositeOperation = 'source-over';
-    ctx.fillStyle = '#3a2a1e';
+    ctx.fillStyle = '#252a3a';
     ctx.fillRect(0, 0, this.cssW, this.cssH);
     if (!world) return;
 
@@ -295,7 +295,7 @@ export class Renderer {
     ctx.restore();
     // icon on top
     if (!w.visible[w.idx(b.x, b.y)]) {
-      ctx.fillStyle = 'rgba(43,32,24,0.9)';
+      ctx.fillStyle = 'rgba(35,40,56,0.9)';
       ctx.strokeStyle = `rgb(${col})`;
       ctx.lineWidth = 2;
       ctx.beginPath();
@@ -316,12 +316,12 @@ export class Renderer {
   _drawWaveFront(ctx, w, y, time) {
     const MW = w.w * S;
     const g = ctx.createLinearGradient(0, y - S * 4, 0, y);
-    g.addColorStop(0, 'rgba(60,35,15,0)');
-    g.addColorStop(1, 'rgba(60,35,15,0.45)');
+    g.addColorStop(0, 'rgba(30,36,60,0)');
+    g.addColorStop(1, 'rgba(30,36,60,0.45)');
     ctx.fillStyle = g;
     ctx.fillRect(0, y - S * 4, MW, S * 4);
     const frame = Math.floor(time * 16);
-    ctx.fillStyle = 'rgba(20,15,12,0.92)';
+    ctx.fillStyle = 'rgba(26,30,48,0.92)';
     ctx.beginPath();
     ctx.moveTo(0, y - S * 1.1);
     for (let x = 0; x <= MW; x += S / 2) ctx.lineTo(x, y - S * 0.9 + (hash2(x, frame, 9) - 0.5) * 10);
@@ -342,7 +342,7 @@ export class Renderer {
     }
     ctx.stroke();
     for (let k = 0; k < 4; k++) {
-      this.effects.burst(Math.random() * MW, y, 1, { color: k % 2 ? '#d9c7a0' : '#1d1915', kind: 'flake', speed: 60, size: 3, gravity: 60, life: 1 });
+      this.effects.burst(Math.random() * MW, y, 1, { color: k % 2 ? '#d5d9e2' : '#232838', kind: 'flake', speed: 60, size: 3, gravity: 60, life: 1 });
     }
   }
 
@@ -386,20 +386,20 @@ export class Renderer {
       ctx.textBaseline = 'middle';
       const bx = -Math.cos(a) * 30;
       const by = -Math.sin(a) * 30;
-      ctx.fillStyle = 'rgba(242,232,206,0.95)';
-      ctx.strokeStyle = '#1d1915';
+      ctx.fillStyle = 'rgba(244,245,241,0.95)';
+      ctx.strokeStyle = '#232838';
       ctx.lineWidth = 1.5;
       roundRect(ctx, bx - 18, by - 11, 36, 22, 8);
       ctx.fill();
       ctx.stroke();
-      ctx.fillStyle = '#1d1915';
+      ctx.fillStyle = '#232838';
       ctx.fillText(String(d), bx, by + 1);
     }
     ctx.rotate(a);
     const bob = Math.sin(time * 5) * 3;
     ctx.scale(size, size);
     ctx.fillStyle = g.color;
-    ctx.strokeStyle = '#1d1915';
+    ctx.strokeStyle = '#232838';
     ctx.lineWidth = 2.5;
     ctx.beginPath();
     ctx.moveTo(20 + bob, 0);
@@ -505,7 +505,7 @@ export class Renderer {
     const p = game.player;
     if (!p.path.length) return;
     const w = game.world;
-    ctx.strokeStyle = 'rgba(163,48,42,0.6)';
+    ctx.strokeStyle = 'rgba(201,84,80,0.6)';
     ctx.lineWidth = 2;
     ctx.setLineDash([2, 6]);
     ctx.lineDashOffset = -time * 20;
@@ -561,7 +561,7 @@ export class Renderer {
       }
     }
     // Crossed-out tiles that can't take this ink.
-    ctx.strokeStyle = 'rgba(90,60,40,0.45)';
+    ctx.strokeStyle = 'rgba(66,76,104,0.45)';
     ctx.lineWidth = 1.5;
     ctx.beginPath();
     for (const i of pv.rejected) {
@@ -577,7 +577,7 @@ export class Renderer {
   }
 
   _drawBorder(ctx, MW, MH) {
-    ctx.strokeStyle = 'rgba(60,40,22,0.9)';
+    ctx.strokeStyle = 'rgba(40,46,68,0.9)';
     ctx.lineWidth = 3;
     ctx.strokeRect(-6, -6, MW + 12, MH + 12);
     ctx.lineWidth = 1.2;
@@ -596,13 +596,13 @@ export class Renderer {
     const tw = ctx.measureText(text).width + 22;
     const bx = Math.max(8, Math.min(this.cssW - tw - 8, sx - tw / 2));
     const by = Math.max(70, sy - 88);
-    ctx.fillStyle = short ? 'rgba(163,48,42,0.95)' : 'rgba(242,232,206,0.96)';
-    ctx.strokeStyle = '#1d1915';
+    ctx.fillStyle = short ? 'rgba(201,84,80,0.95)' : 'rgba(244,245,241,0.96)';
+    ctx.strokeStyle = '#232838';
     ctx.lineWidth = 2;
     roundRect(ctx, bx, by, tw, 34, 10);
     ctx.fill();
     ctx.stroke();
-    ctx.fillStyle = short ? '#fff4e6' : INK_COLORS[pv.type] || '#1d1915';
+    ctx.fillStyle = short ? '#ffffff' : INK_COLORS[pv.type] || '#232838';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText(text, bx + tw / 2, by + 18);
@@ -611,7 +611,7 @@ export class Renderer {
     ctx.moveTo(Math.max(bx + 12, Math.min(bx + tw - 12, sx)) - 6, by + 34);
     ctx.lineTo(Math.max(bx + 12, Math.min(bx + tw - 12, sx)), by + 42 + Math.sin(time * 8));
     ctx.lineTo(Math.max(bx + 12, Math.min(bx + tw - 12, sx)) + 6, by + 34);
-    ctx.fillStyle = short ? 'rgba(163,48,42,0.95)' : 'rgba(242,232,206,0.96)';
+    ctx.fillStyle = short ? 'rgba(201,84,80,0.95)' : 'rgba(244,245,241,0.96)';
     ctx.fill();
     ctx.stroke();
   }

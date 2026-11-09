@@ -1,7 +1,7 @@
 /**
- * Procedural parchment. Everything is generated at startup - no image assets.
+ * Procedural paper. Everything is generated at startup - no image assets.
  *
- *  - makePaper():  tileable cream paper with low-frequency mottling, fine
+ *  - makePaper():  tileable off-white paper with low-frequency mottling, fine
  *                  grain, fibres and faint stains.
  *  - makeGrain():  small neutral grain tile used as a multiply overlay so the
  *                  fog and sprites look printed on the same sheet.
@@ -46,7 +46,7 @@ function periodicNoise(rand, cells) {
  * @param {{r:number,g:number,b:number}} base base colour
  * @param {number} seed
  */
-export function makePaper(size = 512, base = { r: 238, g: 225, b: 193 }, seed = 1337) {
+export function makePaper(size = 512, base = { r: 241, g: 241, b: 235 }, seed = 1337) {
   const rand = mulberry32(seed);
   const c = makeCanvas(size, size);
   const ctx = c.getContext('2d');
@@ -64,8 +64,8 @@ export function makePaper(size = 512, base = { r: 238, g: 225, b: 193 }, seed = 
       const shade = (n - 0.5) * 26 + grain;
       const p = (y * size + x) * 4;
       d[p] = base.r + shade;
-      d[p + 1] = base.g + shade * 0.95;
-      d[p + 2] = base.b + shade * 0.8;
+      d[p + 1] = base.g + shade;
+      d[p + 2] = base.b + shade * 1.05;
       d[p + 3] = 255;
     }
   }
@@ -83,7 +83,7 @@ export function makePaper(size = 512, base = { r: 238, g: 225, b: 193 }, seed = 
     const len = 6 + rand() * 22;
     const bend = (rand() - 0.5) * 10;
     const dark = rand() < 0.55;
-    ctx.strokeStyle = dark ? `rgba(120,90,50,${0.05 + rand() * 0.06})` : `rgba(255,250,235,${0.1 + rand() * 0.12})`;
+    ctx.strokeStyle = dark ? `rgba(90,100,130,${0.05 + rand() * 0.06})` : `rgba(255,255,255,${0.1 + rand() * 0.12})`;
     ctx.lineWidth = 0.6 + rand() * 0.8;
     wrapDraw((ox, oy) => {
       ctx.beginPath();
@@ -104,9 +104,9 @@ export function makePaper(size = 512, base = { r: 238, g: 225, b: 193 }, seed = 
     const r = 30 + rand() * 90;
     wrapDraw((ox, oy) => {
       const g = ctx.createRadialGradient(x + ox, y + oy, r * 0.2, x + ox, y + oy, r);
-      g.addColorStop(0, 'rgba(150,110,60,0.0)');
-      g.addColorStop(0.75, `rgba(150,110,60,${0.04 + rand() * 0.04})`);
-      g.addColorStop(1, 'rgba(150,110,60,0)');
+      g.addColorStop(0, 'rgba(100,115,150,0.0)');
+      g.addColorStop(0.75, `rgba(100,115,150,${0.04 + rand() * 0.04})`);
+      g.addColorStop(1, 'rgba(100,115,150,0)');
       ctx.fillStyle = g;
       ctx.fillRect(x + ox - r, y + oy - r, r * 2, r * 2);
     });
@@ -124,8 +124,8 @@ export function makeGrain(size = 192, seed = 99) {
   for (let i = 0; i < size * size; i++) {
     const v = 255 - Math.floor(rand() * rand() * 46);
     d[i * 4] = v;
-    d[i * 4 + 1] = v - 2;
-    d[i * 4 + 2] = v - 6;
+    d[i * 4 + 1] = v - 1;
+    d[i * 4 + 2] = v;
     d[i * 4 + 3] = 255;
   }
   ctx.putImageData(img, 0, 0);
@@ -136,7 +136,7 @@ export function makeGrain(size = 192, seed = 99) {
 let cssPaper = null;
 export function paperCSS() {
   if (!cssPaper) {
-    const c = makePaper(384, { r: 236, g: 222, b: 188 }, 4242);
+    const c = makePaper(384, { r: 240, g: 240, b: 234 }, 4242);
     cssPaper = `url(${c.toDataURL('image/png')})`;
   }
   return cssPaper;

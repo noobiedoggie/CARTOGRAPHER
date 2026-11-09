@@ -11,7 +11,7 @@ stays.
 - 10 procedurally generated floors + a boss floor (*The Devourer*, a giant eraser that eats the map)
 - Fog of war that dissolves softly as you explore; explored areas stay as a faded sketch
 - 4 ink types, 16 between-floor upgrades, a meta-progression **Atlas** (pages, unlocks, outfits)
-- Hand-drawn parchment look, procedural sound and haptics. There are **no image or audio assets**:
+- Hand-drawn paper-and-ink look (off-white paper, navy ink, soft colours), procedural sound and haptics. There are **no image or audio assets**:
   everything is generated at runtime.
 - Built with **Vite + vanilla JS (Canvas 2D)** and wrapped with **Capacitor 8** as a native Android app.
   It's locked to portrait, targets 60 FPS and works fully offline.
@@ -142,7 +142,7 @@ cd android
 then automatically:
 
 - locks the app to portrait,
-- sets the parchment launch theme and splash,
+- sets the paper-coloured launch theme and splash,
 - generates the compass-rose launcher icons.
 
 You only need `npx cap add android` once. After changing the game code, just run:
@@ -256,7 +256,7 @@ it digs a passage through hidden rock or conjures a fresh ink pool, so a floor i
 - Terrain is drawn into cached 10×10-tile chunks that are re-rendered only when tiles change.
 - The fog is a 4-pixels-per-tile RGBA bitmap, magnified with smoothing. The reveal is a soft
   noise-driven dissolve that ripples outward from the explorer.
-- Parchment, grain, vignette, sprites and icons are all procedural.
+- Paper texture, grain, vignette, sprites and icons are all procedural.
 - Adaptive quality drops the grain overlay, and then resolution, if a device can't hold 60 FPS.
 
 ---
@@ -273,7 +273,7 @@ scripts/
 src/
   main.js                  app shell & roguelite loop (menu -> run -> upgrades -> summary)
   config.js                ALL balance numbers
-  styles.css               parchment UI
+  styles.css               paper & ink UI
   core/   rng · camera · input (tap / hold-drag / swipe / pinch) · audio (Web Audio) ·
           haptics (Capacitor Haptics) · storage (Capacitor Preferences) · events
   world/  tiles · world grid · generator · solver · A* pathfinding · vision

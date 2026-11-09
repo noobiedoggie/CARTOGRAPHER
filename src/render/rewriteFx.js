@@ -1,7 +1,7 @@
 /**
  * The rewrite wave, made scary:
  *  - the page CRUMPLES: faceted creases radiating from a crumple point,
- *    alternating light/dark facets, a sepia darkening
+ *    alternating light/dark facets, an inky darkening
  *  - INK RUNS down the screen in thick drips
  *  - the camera tilts, sways and shakes
  *  - the explorer's own ink GLOWS, drawn above the fog: the only stable thing
@@ -112,7 +112,7 @@ export class RewriteFX {
     const y1 = Math.min(w.h - 1, vt.y1);
     // Darken the shifting page so the stable ink pops.
     if (this.level > 0) {
-      ctx.fillStyle = `rgba(45,26,10,${0.32 * this.level})`;
+      ctx.fillStyle = `rgba(28,32,58,${0.32 * this.level})`;
       ctx.fillRect(x0 * S, y0 * S, (x1 - x0 + 1) * S, (y1 - y0 + 1) * S);
     }
     if (this.glow <= 0) return;
@@ -142,8 +142,8 @@ export class RewriteFX {
     if (warn > 0 && L < 0.01) {
       // Before the wave: ink seeps in from the top edge.
       const g = ctx.createLinearGradient(0, 0, 0, H * 0.3);
-      g.addColorStop(0, `rgba(29,25,21,${0.55 * warn})`);
-      g.addColorStop(1, 'rgba(29,25,21,0)');
+      g.addColorStop(0, `rgba(35,40,56,${0.55 * warn})`);
+      g.addColorStop(1, 'rgba(35,40,56,0)');
       ctx.fillStyle = g;
       ctx.fillRect(0, 0, W, H * 0.3);
     }
@@ -151,7 +151,7 @@ export class RewriteFX {
     ctx.save();
     // Facets
     for (const f of this.facets) {
-      ctx.fillStyle = f.shade > 0 ? `rgba(255,248,228,${0.13 * L * f.s})` : `rgba(40,22,8,${0.2 * L * f.s})`;
+      ctx.fillStyle = f.shade > 0 ? `rgba(255,255,255,${0.13 * L * f.s})` : `rgba(26,30,52,${0.2 * L * f.s})`;
       ctx.beginPath();
       ctx.moveTo(f.c[0], f.c[1]);
       ctx.lineTo(f.a.mx, f.a.my);
@@ -168,7 +168,7 @@ export class RewriteFX {
       ctx.stroke();
     };
     for (const pass of [0, 1]) {
-      ctx.strokeStyle = pass ? `rgba(255,250,235,${0.55 * L})` : `rgba(55,32,12,${0.6 * L})`;
+      ctx.strokeStyle = pass ? `rgba(255,255,255,${0.55 * L})` : `rgba(30,36,60,${0.6 * L})`;
       ctx.lineWidth = pass ? 1.2 : 2;
       ctx.save();
       if (pass) ctx.translate(1.6, 1.6);
@@ -177,7 +177,7 @@ export class RewriteFX {
       ctx.restore();
     }
     // Running ink
-    ctx.fillStyle = `rgba(22,17,14,${0.88 * Math.min(1, L * 1.4)})`;
+    ctx.fillStyle = `rgba(28,32,50,${0.88 * Math.min(1, L * 1.4)})`;
     for (const d of this.drips) {
       if (d.len <= 0) continue;
       const wdt = d.width;
@@ -192,7 +192,7 @@ export class RewriteFX {
     // Ink pooling along the top edge
     ctx.fillRect(0, 0, W, 6 + 18 * L);
     // Sepia gloom
-    ctx.fillStyle = `rgba(70,40,15,${0.18 * L})`;
+    ctx.fillStyle = `rgba(30,36,64,${0.18 * L})`;
     ctx.fillRect(0, 0, W, H);
     ctx.restore();
   }
