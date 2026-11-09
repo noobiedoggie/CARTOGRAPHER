@@ -38,7 +38,7 @@ export const UPGRADES = [
   { id: 'bramble', name: 'Bramble Walls', desc: 'Enemies that touch your red walls are snagged (stunned)', max: 1, cond: (run) => run.hasInk(INK.RED) },
   { id: 'patience', name: 'Patient World', desc: '+15s between rewrite waves', max: 2 },
   { id: 'recycler', name: 'Recycler', desc: 'Ink rubbed out by Erasers is half refunded', max: 1 },
-  { id: 'compass', name: "Cartographer's Compass", desc: 'Always know where the stairs are', max: 1 },
+  { id: 'compass', name: 'Ink Compass', desc: 'A second needle points to the nearest ink pool', max: 1 },
   { id: 'tidal', name: 'Tidal Ink', desc: 'Blue ink costs half', max: 1, cond: (run) => run.hasInk(INK.BLUE) },
   { id: 'secondwind', name: 'Second Wind', desc: 'When hurt: +10 ink and longer invulnerability', max: 1 },
 ].map((u) => ({ ...u, icon: G[u.id] }));

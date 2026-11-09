@@ -57,6 +57,7 @@ export class Screens {
       resume: () => a.resume(),
       abandon: () => this.confirm('Abandon this expedition? You keep the pages you found.', () => a.abandon(), 'pause'),
       yes: () => this._yes?.(),
+      closeNotice: () => this._close?.(),
       no: () => (this._no ? this._no() : this.menu()),
     };
     map[action]?.();
@@ -131,12 +132,12 @@ export class Screens {
       'howto',
       `<div class="panel howto">
         <h2>How to play</h2>
-        <p><b>Tap</b> the map to walk there.</p>
+        <p><b>Tap</b> the map to walk there. The <b>golden light</b> and the compass needle at the screen edge point to the stairs.</p>
         <p><b>Press, hold, then drag</b> to draw with ink. Each tile costs 1 ink - the bubble shows the cost and turns <b style="color:#a3302a">red</b> if you can't afford it. Lift your finger and the line becomes real.</p>
-        <p><b>Black</b> makes paths and bridges over chasms and water. <b>Blue</b> paints water (Smudges can't cross; it puts out fire). <b>Red</b> builds walls. <b>Gold</b> reveals the fog.</p>
+        <p>Ravines, rivers and <b>torn holes</b> cut every floor: <b>black</b> ink bridges them. You get <b>blue</b> (water - Smudges can't cross it) on floor 2 and <b>red</b> (walls) on floor 3.</p>
         <p><b>Undo</b> within 2 seconds for a 50% refund. <b>Quick swipe</b> to look around, <b>pinch</b> to zoom.</p>
-        <p>Every minute the world <b>rewrites itself</b>: anything you can't see and haven't inked is redrawn. Your ink is the only thing that stays.</p>
-        <p>Find the stairs on 10 floors, then survive the Devourer. You have 3 hearts for the whole expedition. Pages you collect unlock new inks in the Atlas.</p>
+        <p>Every minute the world <b>rewrites itself</b> and tears a rift across your way. Anything you can't see and haven't inked is redrawn - <b>your ink is the only thing that stays</b>.</p>
+        <p><b>Smudges</b> smear 8 ink on touch (a heart if you're dry) and come running at the scratch of your pen. <b>Erasers</b> rub out your lines. Find the stairs on 10 floors, then survive the Devourer. 3 hearts for the whole expedition.</p>
         <button class="btn" data-action="menu">Back</button>
       </div>`,
       'dim',
@@ -189,6 +190,42 @@ export class Screens {
       </div>
       <div class="cards">${cards}</div>
       <p class="note" style="color:#f2e6c8">Choose one</p>`,
+      'dim',
+    );
+  }
+
+  /** A new ink is handed to the explorer mid-run. */
+  newInk(types, onClose) {
+    const info = {
+      2: {
+        name: 'Blue ink',
+        color: '#2f62a8',
+        what: 'Paints <b>water</b>.',
+        how: '<b>Smudges cannot cross water.</b> Draw a line of blue between you and them. It also puts out fire.',
+      },
+      3: {
+        name: 'Red ink',
+        color: '#a3302a',
+        what: 'Builds <b>walls</b>.',
+        how: 'Walls stop <b>everything</b>: Smudges, Erasers, even ink blots. Box yourself in, or wall off a crossing. Careful - you can\'t walk through them either.',
+      },
+    };
+    this._close = onClose;
+    const cards = types
+      .map((t) => {
+        const i = info[t];
+        return `<div class="ink-card"><span class="ink-blot" style="background:${i.color}"></span>
+          <h2 style="color:${i.color}">${i.name}</h2><p class="ink-what">${i.what}</p><p>${i.how}</p></div>`;
+      })
+      .join('');
+    this._mount(
+      'newInk',
+      `<div class="panel">
+        <p class="subtitle" style="margin:0 0 6px">A new ink for your quill!</p>
+        ${cards}
+        <p class="note">Pick inks with the buttons at the bottom of the screen.</p>
+        <button class="btn primary" data-action="closeNotice">Got it</button>
+      </div>`,
       'dim',
     );
   }

@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultMeta, migrateMeta, buy, floorPages, PERKS } from '../src/game/meta.js';
+import { defaultMeta, migrateMeta, buy, floorPages, PERKS, INK_UNLOCKS } from '../src/game/meta.js';
 import { rollUpgrades, applyUpgrade, UPGRADES } from '../src/game/upgrades.js';
 import { Run } from '../src/game/run.js';
 import { RNG } from '../src/core/rng.js';
@@ -18,7 +18,8 @@ test('buying spends pages and unlocks', () => {
   for (let k = 0; k < p.costs.length; k++) assert.equal(buy(m, 'perk', 'inkwell'), true);
   assert.equal(buy(m, 'perk', 'inkwell'), false, 'maxed');
   assert.equal(m.perks.inkwell, 3);
-  assert.equal(m.pages, 100 - 10 - p.costs.reduce((a, b) => a + b, 0));
+  const blueCost = INK_UNLOCKS.find((u) => u.id === 'blue').cost;
+  assert.equal(m.pages, 100 - blueCost - p.costs.reduce((a, b) => a + b, 0));
 });
 
 test('perks and upgrades change run stats', () => {
@@ -70,4 +71,21 @@ test('pages economy and migration', () => {
   assert.equal(m.unlocked.red, true);
   assert.equal(m.unlocked.blue, false);
   assert.ok(m.settings.sound);
+});
+
+test('blue ink arrives on floor 2, red on floor 3 (earlier with the Atlas)', () => {
+  const run = new Run(defaultMeta());
+  assert.ok(!run.hasInk(INK.BLUE) && !run.hasInk(INK.RED));
+  run.floor = 2;
+  assert.ok(run.hasInk(INK.BLUE) && !run.hasInk(INK.RED));
+  assert.deepEqual(run.newInks(), [INK.BLUE]);
+  run.floor = 3;
+  assert.ok(run.hasInk(INK.RED));
+  assert.deepEqual(run.newInks(), [INK.RED]);
+  const m = defaultMeta();
+  m.unlocked.blue = true;
+  const early = new Run(m);
+  assert.ok(early.hasInk(INK.BLUE));
+  early.floor = 2;
+  assert.deepEqual(early.newInks(), [], 'no announcement when already owned');
 });

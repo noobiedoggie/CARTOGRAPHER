@@ -64,17 +64,20 @@ export class HUD {
   }
 
   /** Rebuild the ink picker for the inks this run has. */
-  buildPicker(run) {
+  buildPicker(run, fresh = []) {
     const types = [INK.BLACK, INK.BLUE, INK.RED, INK.GOLD].filter((t) => run.hasInk(t));
     this.el.picker.innerHTML = types
       .map(
-        (t) => `<button class="ink-btn ${INK_INFO[t].cls}" data-ink="${t}">
+        (t) => `<button class="ink-btn ${INK_INFO[t].cls} ${fresh.includes(t) ? 'fresh' : ''}" data-ink="${t}">
           <span class="swatch"></span><b>${INK_INFO[t].name}</b><small data-sub>${INK_INFO[t].sub}</small></button>`,
       )
       .join('');
     for (const b of this.el.picker.querySelectorAll('.ink-btn')) {
       b.addEventListener('pointerdown', (e) => e.stopPropagation());
-      b.addEventListener('click', () => this.h.onInk?.(Number(b.dataset.ink)));
+      b.addEventListener('click', () => {
+        b.classList.remove('fresh');
+        this.h.onInk?.(Number(b.dataset.ink));
+      });
     }
     this.el.picker.hidden = types.length <= 1 && false;
     this.cache.inkType = -1;
@@ -160,6 +163,14 @@ export class HUD {
       el.undo.hidden = !s;
     });
     if (show) el.undoRing.style.setProperty('--t', String(left / run.undoWindow));
+  }
+
+  /** Ink bar shudders red when a Smudge smears your inkwell. */
+  flashInk() {
+    const b = this.el.inkBar;
+    b.classList.remove('drained');
+    void b.offsetWidth;
+    b.classList.add('drained');
   }
 
   /** Floating message near the top of the screen. */

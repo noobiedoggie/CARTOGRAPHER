@@ -17,9 +17,15 @@ stays.
   It's locked to portrait, targets 60 FPS and works fully offline.
 
 <p align="center">
+  <img src="docs/beacon.jpg" width="200" alt="Floor start: the camera flies over the stairs, a beacon shining through the fog">
+  <img src="docs/crossing.jpg" width="200" alt="A plank bridge over a river, a Smudge guarding the crossing">
+  <img src="docs/rewrite.jpg" width="200" alt="A rewrite wave: the page crumples, ink runs, your own lines glow">
+  <img src="docs/newink.jpg" width="200" alt="Blue ink handed over on floor 2">
+</p>
+<p align="center">
   <img src="docs/menu.jpg" width="200" alt="Main menu over a charted map">
   <img src="docs/drawing.jpg" width="200" alt="Drawing a bridge with the live ink-cost bubble">
-  <img src="docs/floor.jpg" width="200" alt="Floor 6: water, a bridge, fire, a Smudge and a Scribbler">
+  <img src="docs/floor.jpg" width="200" alt="Water, a bridge, fire, a Smudge and a Scribbler">
   <img src="docs/boss.jpg" width="200" alt="The Devourer boss floor">
 </p>
 
@@ -40,31 +46,55 @@ you can't afford the stroke, and only the affordable part is drawn.
 
 ### Inks
 
-| Ink | Effect | Unlock |
+| Ink | Effect | When you get it |
 |---|---|---|
-| **Black** | Path / bridge: walkable, crosses chasms and water | always |
-| **Blue** | Water: Smudges can't cross it, and it puts out fire | Atlas, 10 pages |
-| **Red** | Wall: blocks enemies, ink blots and you | Atlas, 25 pages |
-| **Gold** (rare) | Burns away fog around each drop and marks the stairs | Atlas, 45 pages |
+| **Black** | Path / bridge: walkable, crosses ravines, rivers and torn holes | always |
+| **Blue** | Water: Smudges can't cross it, and it puts out fire | **floor 2** of every run (from floor 1 with *Early Blue*, 8 pages in the Atlas) |
+| **Red** | Wall: blocks enemies, ink blots and you | **floor 3** of every run (from floor 1 with *Early Red*, 15 pages) |
+| **Gold** (rare) | Burns away fog around each drop and charts the land around the stairs | Atlas, 35 pages |
+
+A card introduces each new ink the first time you receive it.
 
 ### The world
 
-Floors are **40 × 60 tiles**: ground, chasm, water, rock, ruins, ink pools (refill ink), chests
-and the stairs down. Every **60 s** (see the timer) a **rewrite wave** sweeps the page. Every tile
-you **can't currently see** and **haven't inked** is regenerated, and fog rolls back over it.
-Ruins, the stairs and your ink are stable. So you have to choose between inking a route now to
-secure it and saving the ink.
+Floors are **40 × 60 tiles**: ground, rock, ruins, ink pools (refill ink), chests and the stairs
+down, cut by **barriers**. Every floor has 2 to 5 full-width ravines, rivers or **torn holes in the
+page** between you and the stairs, plus a moat around the stairs. Each one has to be crossed with
+ink, and the narrow crossing points are the reward for exploring. The minimum ink needed rises
+from about 6 on floor 1 to about 18 on floor 10.
+
+**Where to go:** at the start of each floor the camera flies over the stairs. A **golden beacon**
+marks them through the fog, and a **compass needle** with the distance sits at the edge of the
+screen. On the boss floor it points to the nearest unlit anchor.
+
+**The rewrite wave:** every **60 s** (see the timer; the last 3 seconds tick) the page crumples,
+ink runs down the screen and the world is redrawn:
+
+- Every tile you **can't currently see** and **haven't inked** is regenerated, and fog rolls back
+  over it.
+- The wave picks the most hostile version of the world that is still beatable with the ink you
+  hold.
+- It **tears a rift across your route** just beyond your vision. The tear stays sketched on your
+  map.
+- Your ink glows during the wave: it's the only stable thing. An inked path punches straight
+  through the tear.
+
+So you have to choose between inking a route now to secure it and saving the ink.
 
 ### Enemies (no combat: avoid, block, trap)
 
-- **Smudge**: wanders and chases on sight. It can't cross water. After landing a hit it backs off
-  for a few seconds.
-- **Eraser** (floor 3+): hunts your ink and rubs it out tile by tile. A bridge you stand on can
+- **Smudge**: chases on sight and can't cross water.
+  - Smudges stand **guard on the far side of the crossings** you must bridge.
+  - The **scratch of your pen** brings nearby ones running.
+  - A touch **smears 8 ink** out of your inkwell. If you're too dry to pay, it costs a heart.
+  - After touching you it backs off for a few seconds.
+- **Eraser** (floor 2+): hunts your ink and rubs it out tile by tile. A bridge you stand on can
   vanish under you.
-- **Scribbler** (floor 5+): scribbles walls across your path. From floor 7 it also flicks ink
+- **Scribbler** (floor 4+): scribbles walls across your path. From floor 7 it also flicks ink
   blots, which red walls block.
-- **Fire** (floor 3+): starts in rewritten areas, spreads over dry ground and burns black ink.
+- **Fire** (floor 4+): starts in rewritten areas, spreads over dry ground and burns black ink.
   Blue ink puts it out.
+- Every rewrite wave lets something new crawl out of the page.
 - **The Devourer** (floor 11): light 3 anchors to unseal the stairs while it eats the map into
   chasm. Red walls stall it and water slows it.
 
@@ -168,29 +198,36 @@ npm run balance    # headless "skilled bot" plays full runs and reports the win 
 
 - **Generator**: 440 floors (all floor types × 40 seeds) are validated. Each one has a reachable
   exit within its ink-cost band, a free ink pool, a solid border and, on the boss floor, reachable
-  anchors.
+  anchors. Every floor has at least 2 crossings and needs at least 5 ink (4+ crossings from
+  floor 4).
 - **Bot clears every floor**: a solver-guided bot plays floors 1–11 through the real game API
   (tap-to-walk and ink strokes).
-- **Rewrite waves**: with a wave every 4 s, the bot still reaches the stairs. Player ink survives
-  waves, and after a wave the exit is reachable with the ink in hand.
+- **Rewrite waves**: with a wave every 15 s, the bot still reaches the stairs. Player ink survives
+  waves, and after a wave the exit is reachable with the ink in hand. Most waves tear the route,
+  but inked ground is never torn.
+- **Threat**: guards stand on the far bank of their crossing, and drawing alerts nearby Smudges.
 - **Enemy soak**: 90 s of random play on every floor with all enemies, checking the core
   invariants.
 - **Meta**: purchases, perks, upgrade rolls, run snapshots.
 
 ### Balance
 
-`npm run balance` runs a bot that knows the cheapest route, detours to ink pools when low, and
-throws water or walls in front of chasing Smudges. It dodges poorly and uses no advanced tricks.
-Current numbers:
+`npm run balance` runs a bot (`tests/skilledBot.js`) that:
+
+- knows the cheapest route,
+- detours to ink pools when low,
+- throws water or walls in front of chasing Smudges and backs off,
+- springs the undo trap on Smudges that step onto a fresh bridge.
+
+It plans poorly against Erasers and Scribblers. Current numbers:
 
 | Setup | Bot win rate |
 |---|---|
-| All inks unlocked (150 runs) | **~17 %** |
-| Black ink only (100 runs) | ~14 % |
+| No Atlas unlocks: blue on floor 2, red on floor 3 (150 runs) | **~22 %** |
+| All Atlas inks (150 runs) | ~18 % |
 
-Runs mostly end between floors 6 and 10. A skilled human should land around **1 win in 5**. The
-first runs are harder until blue and red ink are unlocked. All balance knobs live in
-[`src/config.js`](src/config.js).
+Floors 1–3 cost almost no hearts. Runs mostly end between floors 6 and 10. A skilled human should
+land around **1 win in 5**. All balance knobs live in [`src/config.js`](src/config.js).
 
 ---
 

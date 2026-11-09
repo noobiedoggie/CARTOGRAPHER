@@ -45,7 +45,7 @@ export function paintTerrain(ctx, world, x0, y0, x1, y1) {
   for (let y = ay; y < by; y++) {
     for (let x = ax; x < bx; x++) {
       const t = terrain[y * w + x];
-      if (t === T.ROCK || t === T.CHASM || t === T.WATER) continue;
+      if (t === T.ROCK || t === T.CHASM || t === T.WATER || t === T.VOID) continue;
       const hh = hash2(x, y, 5);
       const px = x * S;
       const py = y * S;
@@ -142,6 +142,37 @@ export function paintTerrain(ctx, world, x0, y0, x1, y1) {
     }
   edgeLines(ctx, ax, ay, bx, by, tAt, T.CHASM, (t) => t !== T.CHASM && t !== T.ROCK, 'rgba(28,18,12,0.95)', 2.2, 5, 0, true);
 
+  // ---- Void: a hole torn through the page, the dark desk showing below ----
+  let anyVoid = false;
+  ctx.fillStyle = '#20150e';
+  for (let y = ay; y < by; y++)
+    for (let x = ax; x < bx; x++)
+      if (terrain[y * w + x] === T.VOID) {
+        ctx.fillRect(x * S, y * S, S, S);
+        anyVoid = true;
+      }
+  if (anyVoid) {
+    // wood grain of the desk
+    ctx.strokeStyle = 'rgba(90,60,38,0.55)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    for (let y = ay; y < by; y++)
+      for (let x = ax; x < bx; x++) {
+        if (terrain[y * w + x] !== T.VOID) continue;
+        for (let k = 0; k < 3; k++) {
+          const gy = y * S + 5 + k * 10 + hash2(x, y, 300 + k) * 4;
+          ctx.moveTo(x * S, gy);
+          ctx.bezierCurveTo(x * S + S * 0.3, gy - 2, x * S + S * 0.7, gy + 2, (x + 1) * S, gy);
+        }
+      }
+    ctx.stroke();
+    // inner shadow under the torn lip
+    edgeLines(ctx, ax, ay, bx, by, tAt, T.VOID, (t) => t !== T.VOID && t !== T.ROCK, 'rgba(0,0,0,0.45)', 6, 4, 3, true);
+    // ragged white paper fibres at the tear, then a thin ink edge
+    edgeLines(ctx, ax, ay, bx, by, tAt, T.VOID, (t) => t !== T.VOID, 'rgba(250,243,222,0.95)', 3.4, 7, 0, true);
+    edgeLines(ctx, ax, ay, bx, by, tAt, T.VOID, (t) => t !== T.VOID, 'rgba(90,64,40,0.7)', 1, 7, -1.5, true);
+  }
+
   // ---- Rock -------------------------------------------------------------
   ctx.save();
   ctx.beginPath();
@@ -187,7 +218,7 @@ export function paintTerrain(ctx, world, x0, y0, x1, y1) {
     for (let x = ax; x < bx; x++) {
       if (terrain[y * w + x] !== T.ROCK) continue;
       const below = tAt(x, y + 1);
-      if (below === T.ROCK || below === T.CHASM || below === T.WATER) continue;
+      if (below === T.ROCK || below === T.CHASM || below === T.WATER || below === T.VOID) continue;
       if (hash2(x, y, 130) < 0.45) {
         const px = x * S + 5 + hash2(x, y, 131) * (S - 10);
         const py = (y + 1) * S + 3;

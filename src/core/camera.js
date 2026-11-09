@@ -22,6 +22,8 @@ export class Camera {
     this.shakeX = 0;
     this.shakeY = 0;
     this.bounds = null; // {w,h} in world px
+    this.tilt = 0; // radians - the page buckles during rewrite waves
+    this.zoomWobble = 1;
   }
 
   setViewport(w, h) {
@@ -113,23 +115,38 @@ export class Camera {
   }
 
   worldToScreen(wx, wy) {
-    return [(wx - this.x) * this.zoom + this.viewW / 2 + this.shakeX, (wy - this.y) * this.zoom + this.viewH / 2 + this.shakeY];
+    const z = this.zoom * this.zoomWobble;
+    const dx = (wx - this.x) * z;
+    const dy = (wy - this.y) * z;
+    const c = Math.cos(this.tilt);
+    const s = Math.sin(this.tilt);
+    return [dx * c - dy * s + this.viewW / 2 + this.shakeX, dx * s + dy * c + this.viewH / 2 + this.shakeY];
   }
 
   screenToWorld(sx, sy) {
-    return [(sx - this.viewW / 2) / this.zoom + this.x, (sy - this.viewH / 2) / this.zoom + this.y];
+    const z = this.zoom * this.zoomWobble;
+    const dx = sx - this.viewW / 2;
+    const dy = sy - this.viewH / 2;
+    const c = Math.cos(-this.tilt);
+    const s = Math.sin(-this.tilt);
+    return [(dx * c - dy * s) / z + this.x, (dx * s + dy * c) / z + this.y];
   }
 
-  /** Set a canvas transform so drawing happens in world px. */
+  /** Set a canvas transform so drawing happens in world px (zoom, tilt, shake). */
   apply(ctx, dpr) {
-    const z = this.zoom * dpr;
-    ctx.setTransform(z, 0, 0, z, dpr * (this.viewW / 2 + this.shakeX) - this.x * z, dpr * (this.viewH / 2 + this.shakeY) - this.y * z);
+    const z = this.zoom * this.zoomWobble * dpr;
+    const c = Math.cos(this.tilt) * z;
+    const s = Math.sin(this.tilt) * z;
+    const ox = dpr * (this.viewW / 2 + this.shakeX);
+    const oy = dpr * (this.viewH / 2 + this.shakeY);
+    ctx.setTransform(c, s, -s, c, ox - (this.x * c - this.y * s), oy - (this.x * s + this.y * c));
   }
 
   /** Tile rectangle currently on screen (inclusive), padded by `pad` tiles. */
   visibleTiles(pad = 1) {
-    const hw = this.viewW / 2 / this.zoom;
-    const hh = this.viewH / 2 / this.zoom;
+    const grow = this.tilt ? 1.25 : 1;
+    const hw = (this.viewW / 2 / this.zoom) * grow;
+    const hh = (this.viewH / 2 / this.zoom) * grow;
     return {
       x0: Math.floor((this.x - hw) / TILE) - pad,
       y0: Math.floor((this.y - hh) / TILE) - pad,

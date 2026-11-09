@@ -26,10 +26,10 @@ export const BAL = {
   tilesAcross: 13, // how many tiles fit across the screen at zoom 1
 
   // --- Ink ----------------------------------------------------------------
-  startInk: 30,
+  startInk: 44,
   undoWindow: 2.0, // seconds
   undoRefund: 0.5, // fraction refunded
-  poolInk: 12, // ink gained from an ink pool
+  poolInk: 15, // ink gained from an ink pool
   goldRevealRadius: 3,
   startGold: 3, // once gold ink is unlocked
   stillRegenDelay: 1.0, // "Still Waters" upgrade
@@ -52,10 +52,12 @@ export const BAL = {
 
   // --- Enemies ------------------------------------------------------------
   smudgeWander: 1.1,
-  smudgeChase: 2.0, // + per-floor bonus below
+  smudgeChase: 1.85, // + per-floor bonus below
   smudgeChasePerFloor: 0.07,
   smudgeSight: 6,
-  satedTime: 3.5, // after landing a hit an enemy backs off for this long
+  satedTime: 5, // after landing a hit an enemy backs off for this long
+  smudgeDrain: 8, // ink a Smudge smears out of your inkwell on touch
+  smearInvuln: 1.2,
   eraserSpeed: 1.8,
   eraseTime: 0.85, // seconds to rub out one ink tile
   scribblerSpeed: 1.9,

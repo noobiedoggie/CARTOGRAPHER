@@ -139,6 +139,10 @@ class CartographerApp {
     return [wx / S, wy / S];
   }
   onTap(sx, sy) {
+    if (this.intro) {
+      this.intro = null; // tap skips the fly-over
+      return;
+    }
     if (!this.playing) return;
     const [tx, ty] = this.toTile(sx, sy);
     this.game.walkTo(Math.floor(tx), Math.floor(ty));
@@ -146,6 +150,7 @@ class CartographerApp {
     this.tutorial?.notify('tap');
   }
   onDrawStart(sx, sy) {
+    if (this.intro) this.intro = null;
     if (!this.playing) return;
     this.pointer = { x: sx, y: sy };
     const [tx, ty] = this.toTile(sx, sy);
@@ -182,6 +187,7 @@ class CartographerApp {
   // ---------------------------------------------------------------------
   toMenu() {
     this.mode = 'menu';
+    this.intro = null;
     this.endTutorial();
     this.audio?.droneStop();
     this.game = null;
@@ -224,6 +230,12 @@ class CartographerApp {
     game.events.on('damage', () => {
       if (!game.dead) this.saveRun();
     });
+    const fx = this.renderer.rewriteFx;
+    game.events.on('rewriteStart', () => fx.start(this.renderer.cssW, this.renderer.cssH));
+    game.events.on('rewriteEnd', () => fx.end());
+    fx.reset();
+    this.camera.tilt = 0;
+    this.camera.zoomWobble = 1;
     this.renderer.setWorld(game.world);
     this.renderer.effects.clear();
     this.renderer.fog.settle();
@@ -231,12 +243,31 @@ class CartographerApp {
     this.camera.panX = this.camera.panY = 0;
     this.camera.setUserZoom(this.camera.userZoom);
     this.camera.follow(game.player.x * S, game.player.y * S, 0, true);
-    this.hud.buildPicker(run);
+    const fresh = run.newInks();
+    this.hud.buildPicker(run, fresh);
     this.hud.show(true);
     this.screens.hide();
     this.mode = 'game';
     this.saveRun();
     this.endTutorial();
+    // Fly-over: show where the stairs are, then glide back to the explorer.
+    const startIntro = () => {
+      this.intro = { t: 0, dur: 2.6 };
+      const g = game.currentGoal();
+      this.camera.follow((g.x + 0.5) * S, (g.y + 0.5) * S, 0, true);
+    };
+    if (fresh.length) {
+      // A new ink is handed over: explain it before play resumes.
+      game.paused = true;
+      this.mode = 'notice';
+      game.setInkType(fresh[0]);
+      this.screens.newInk(fresh, () => {
+        this.screens.hide();
+        game.paused = false;
+        this.mode = 'game';
+        startIntro();
+      });
+    } else startIntro();
     if (run.floor === 1 && !this.meta.tutorialDone) {
       this.tutorial = new Tutorial(() => {
         this.meta.tutorialDone = true;
@@ -420,14 +451,28 @@ class CartographerApp {
     this.time += dt;
     this.watchPerformance(raw);
     const g = this.game;
-    if (g && (this.mode === 'game' || this.mode === 'transition' || this.mode === 'upgrade' || this.mode === 'summary' || this.mode === 'pause')) {
-      if (this.mode === 'game') {
-        g.update(dt);
-        this.edgeScroll(dt);
-        this.tutorial?.update(dt, g);
-      }
+    if (g && this.mode !== 'menu' && this.mode !== 'boot') {
       const p = g.player;
-      this.camera.follow(p.x * S, p.y * S, dt);
+      if (this.intro) {
+        // Hold on the goal, then ease back to the explorer. The world waits.
+        const it = this.intro;
+        it.t += dt;
+        const goal = g.currentGoal();
+        const k = Math.max(0, Math.min(1, (it.t - 1.0) / (it.dur - 1.0)));
+        const e = k * k * (3 - 2 * k);
+        const gx = (goal.x + 0.5) * S;
+        const gy = (goal.y + 0.5) * S;
+        this.camera.follow(gx + (p.x * S - gx) * e, gy + (p.y * S - gy) * e, dt, true);
+        if (it.t >= it.dur) this.intro = null;
+      } else {
+        if (this.mode === 'game') {
+          g.update(dt);
+          this.edgeScroll(dt);
+          this.tutorial?.update(dt, g);
+        }
+        this.camera.follow(p.x * S, p.y * S, dt);
+      }
+      this.renderer.rewriteFx.update(dt, this.camera);
       this.renderer.fog.update(dt, p.tx, p.ty);
       if (this.mode === 'game') this.hud.update(g);
       this.renderer.effects.update(dt);

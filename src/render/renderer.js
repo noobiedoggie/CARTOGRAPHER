@@ -13,6 +13,7 @@ import { makePaper, makeGrain } from './paper.js';
 import { paintTerrain } from './terrainPainter.js';
 import { drawInkTile } from './inkPainter.js';
 import { FogRenderer } from './fogRenderer.js';
+import { RewriteFX } from './rewriteFx.js';
 import { Effects } from './effects.js';
 import { drawPlayer, drawDestination, drawSmudge, drawEraser, drawScribbler, drawDevourer, drawBlot } from './sprites.js';
 
@@ -44,6 +45,7 @@ export class Renderer {
     this.extraDrawers = []; // (ctx, scene) => void, world space, below fog
     this.overFogDrawers = []; // world space, above fog
     this.screenDrawers = []; // screen space
+    this.rewriteFx = new RewriteFX();
     this.quality = 1; // 0 = low (no grain overlay)
     this.maxDpr = 2;
   }
@@ -169,7 +171,7 @@ export class Renderer {
     this.effects.draw(ctx);
 
     if (scene.showFog !== false && this.fog) this.fog.draw(ctx);
-    if (game) this._drawOverFog(ctx, game, time);
+    if (game) this._drawOverFog(ctx, game, time, vt);
     for (const d of this.overFogDrawers) d(ctx, scene);
     this._drawBorder(ctx, MW, MH);
 
@@ -228,7 +230,7 @@ export class Renderer {
     }
   }
 
-  _drawOverFog(ctx, game, time) {
+  _drawOverFog(ctx, game, time, vt) {
     const w = game.world;
     // Ink pools sensed through the fog (Pool Diviner upgrade).
     if (game.run.upg('diviner')) {
@@ -240,92 +242,170 @@ export class Renderer {
         ctx.fill();
       }
     }
-    // Known stairs stay marked on the map.
-    const e = w.exit;
-    if (game.exitKnown && !w.visible[w.idx(e.x, e.y)]) {
-      const cx = (e.x + 0.5) * S;
-      const cy = (e.y + 0.5) * S;
-      const r = S * (0.55 + 0.08 * Math.sin(time * 4));
-      ctx.strokeStyle = game.exitLocked ? 'rgba(110,40,140,0.85)' : 'rgba(170,120,30,0.9)';
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.arc(cx, cy, r, 0, Math.PI * 2);
-      ctx.stroke();
-      ctx.fillStyle = 'rgba(43,32,24,0.85)';
-      for (let k = 0; k < 3; k++) ctx.fillRect(cx - S * 0.25 + k * 3, cy - S * 0.2 + k * S * 0.15, S * 0.5 - k * 6, S * 0.1);
-    }
+    // Beacons: the stairs (and boss anchors) shine through the fog from afar.
+    for (const b of game.beacons()) this._drawBeacon(ctx, b, time, w);
     // The Devourer looms over the fog as a shadow.
     if (game.boss && game.boss.alive) {
       const b = game.boss;
       const seen = w.visible[b.tile] === 1;
       drawDevourer(ctx, b, time, seen ? 1 : 0.45);
     }
-    // Rewrite wave band
+    // Rewrite: gloom + glowing (stable) ink, then the wet ink wave front.
+    this.rewriteFx.drawWorld(ctx, game, vt, time);
     const rw = game.rewrite;
-    if (rw && rw.sweeping) {
-      const y = rw.sweepPos * S;
-      const MW = w.w * S;
-      const g = ctx.createLinearGradient(0, y - S * 3, 0, y + S * 0.8);
-      g.addColorStop(0, 'rgba(120,80,40,0)');
-      g.addColorStop(0.8, 'rgba(120,80,40,0.38)');
-      g.addColorStop(1, 'rgba(120,80,40,0)');
-      ctx.fillStyle = g;
-      ctx.fillRect(0, y - S * 3, MW, S * 3.8);
-      ctx.strokeStyle = 'rgba(40,24,12,0.85)';
-      ctx.lineWidth = 2.2;
+    if (rw && rw.sweeping) this._drawWaveFront(ctx, w, rw.sweepPos * S, time);
+  }
+
+  /** A pillar of light over a goal tile, drawn above the fog. */
+  _drawBeacon(ctx, b, time, w) {
+    const cx = (b.x + 0.5) * S;
+    const cy = (b.y + 0.5) * S;
+    const col = b.color;
+    const pulse = 0.5 + 0.5 * Math.sin(time * 3 + b.x);
+    ctx.save();
+    ctx.globalCompositeOperation = 'lighter';
+    const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, S * 2.2);
+    g.addColorStop(0, `rgba(${col},${0.55 + 0.25 * pulse})`);
+    g.addColorStop(0.4, `rgba(${col},0.22)`);
+    g.addColorStop(1, `rgba(${col},0)`);
+    ctx.fillStyle = g;
+    ctx.fillRect(cx - S * 2.2, cy - S * 2.2, S * 4.4, S * 4.4);
+    // vertical beam rising from the goal
+    const beam = ctx.createLinearGradient(0, cy - S * 6, 0, cy);
+    beam.addColorStop(0, `rgba(${col},0)`);
+    beam.addColorStop(1, `rgba(${col},${0.35 + 0.2 * pulse})`);
+    ctx.fillStyle = beam;
+    ctx.beginPath();
+    ctx.moveTo(cx - S * 0.15, cy);
+    ctx.lineTo(cx - S * 0.45, cy - S * 6);
+    ctx.lineTo(cx + S * 0.45, cy - S * 6);
+    ctx.lineTo(cx + S * 0.15, cy);
+    ctx.closePath();
+    ctx.fill();
+    // slowly turning rays
+    ctx.strokeStyle = `rgba(${col},${0.35 * pulse + 0.15})`;
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let k = 0; k < 8; k++) {
+      const a = time * 0.6 + (k * Math.PI) / 4;
+      ctx.moveTo(cx + Math.cos(a) * S * 0.7, cy + Math.sin(a) * S * 0.7);
+      ctx.lineTo(cx + Math.cos(a) * S * 1.5, cy + Math.sin(a) * S * 1.5);
+    }
+    ctx.stroke();
+    ctx.restore();
+    // icon on top
+    if (!w.visible[w.idx(b.x, b.y)]) {
+      ctx.fillStyle = 'rgba(43,32,24,0.9)';
+      ctx.strokeStyle = `rgb(${col})`;
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      const frame = Math.floor(time * 14);
-      for (let x = 0; x <= MW; x += S / 2) {
-        const yy = y + (hash2(x, frame, 9) - 0.5) * 8;
-        if (x === 0) ctx.moveTo(x, yy);
-        else ctx.lineTo(x, yy);
-      }
+      ctx.arc(cx, cy, S * 0.42, 0, Math.PI * 2);
+      ctx.fill();
       ctx.stroke();
-      for (let k = 0; k < 3; k++) {
-        this.effects.burst(Math.random() * MW, y, 1, { color: '#d9c7a0', kind: 'flake', speed: 40, size: 3, gravity: 30, life: 1 });
+      ctx.fillStyle = `rgb(${col})`;
+      if (b.kind === 'exit') for (let k = 0; k < 3; k++) ctx.fillRect(cx - S * 0.22 + k * 3, cy - S * 0.2 + k * S * 0.14, S * 0.44 - k * 6, S * 0.09);
+      else {
+        ctx.beginPath();
+        ctx.arc(cx, cy, S * 0.16, 0, Math.PI * 2);
+        ctx.fill();
       }
     }
   }
 
-  /** Pulsing sepia edge in the last seconds before a rewrite. */
-  _drawRewriteWarning(ctx, game, time) {
-    const rw = game.rewrite;
-    if (!rw || rw.sweeping || rw.timeLeft > 5) return;
-    const k = (1 - rw.timeLeft / 5) * (0.5 + 0.5 * Math.sin(time * 9));
-    const g = ctx.createLinearGradient(0, 0, 0, this.cssH * 0.25);
-    g.addColorStop(0, `rgba(110,70,30,${0.45 * k})`);
-    g.addColorStop(1, 'rgba(110,70,30,0)');
+  /** The rewrite front: a wet black wave with ink running off its lip. */
+  _drawWaveFront(ctx, w, y, time) {
+    const MW = w.w * S;
+    const g = ctx.createLinearGradient(0, y - S * 4, 0, y);
+    g.addColorStop(0, 'rgba(60,35,15,0)');
+    g.addColorStop(1, 'rgba(60,35,15,0.45)');
     ctx.fillStyle = g;
-    ctx.fillRect(0, 0, this.cssW, this.cssH * 0.25);
+    ctx.fillRect(0, y - S * 4, MW, S * 4);
+    const frame = Math.floor(time * 16);
+    ctx.fillStyle = 'rgba(20,15,12,0.92)';
+    ctx.beginPath();
+    ctx.moveTo(0, y - S * 1.1);
+    for (let x = 0; x <= MW; x += S / 2) ctx.lineTo(x, y - S * 0.9 + (hash2(x, frame, 9) - 0.5) * 10);
+    for (let x = MW; x >= 0; x -= S / 4) {
+      const drip = hash2(Math.floor(x / (S / 4)), 3, 11);
+      const len = drip > 0.7 ? S * (0.6 + drip * 1.6) * (0.7 + 0.3 * Math.sin(time * 5 + x)) : S * 0.15 * drip;
+      ctx.lineTo(x, y + len);
+    }
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255,190,90,0.55)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    for (let x = 0; x <= MW; x += S / 2) {
+      const yy = y - S * 0.95 + (hash2(x, frame, 9) - 0.5) * 10;
+      if (x === 0) ctx.moveTo(x, yy);
+      else ctx.lineTo(x, yy);
+    }
+    ctx.stroke();
+    for (let k = 0; k < 4; k++) {
+      this.effects.burst(Math.random() * MW, y, 1, { color: k % 2 ? '#d9c7a0' : '#1d1915', kind: 'flake', speed: 60, size: 3, gravity: 60, life: 1 });
+    }
   }
 
-  /** Arrow at the screen edge pointing to known-but-offscreen stairs. */
+  /** Last 10 seconds: ink seeps in; during and after the wave: crumpled page. */
+  _drawRewriteWarning(ctx, game, time) {
+    const rw = game.rewrite;
+    let warn = 0;
+    if (rw && !rw.sweeping && rw.timeLeft <= 10) warn = (1 - rw.timeLeft / 10) * (0.6 + 0.4 * Math.sin(time * (rw.timeLeft < 3 ? 14 : 7)));
+    this.rewriteFx.drawScreen(ctx, this.cssW, this.cssH, Math.max(0, warn));
+  }
+
+  /** Compass needle at the screen edge pointing to the current goal (+ distance). */
   _drawCompass(ctx, game, scene, time) {
-    if (!game.exitKnown) return;
-    const w = game.world;
-    const [sx, sy] = scene.camera.worldToScreen((w.exit.x + 0.5) * S, (w.exit.y + 0.5) * S);
-    const m = 40;
-    if (sx > m && sx < this.cssW - m && sy > 130 && sy < this.cssH - 120) return;
+    const goals = game.compassTargets();
+    for (const g of goals) this._drawArrow(ctx, scene.camera, game, g, time);
+  }
+
+  _drawArrow(ctx, cam, game, g, time) {
+    const [sx, sy] = cam.worldToScreen((g.x + 0.5) * S, (g.y + 0.5) * S);
+    const m = 34;
+    const top = 150;
+    const bottom = this.cssH - 150;
+    if (sx > m && sx < this.cssW - m && sy > top && sy < bottom) return;
     const cx = this.cssW / 2;
-    const cy = this.cssH / 2;
+    const cy = (top + bottom) / 2;
     const a = Math.atan2(sy - cy, sx - cx);
     const rx = this.cssW / 2 - m;
-    const ry = this.cssH / 2 - 140;
+    const ry = (bottom - top) / 2;
     const t = Math.min(rx / Math.abs(Math.cos(a) || 1e-6), ry / Math.abs(Math.sin(a) || 1e-6));
     const ax = cx + Math.cos(a) * t;
     const ay = cy + Math.sin(a) * t;
+    const size = g.small ? 0.7 : 1;
     ctx.save();
     ctx.translate(ax, ay);
+    // distance badge
+    if (!g.small) {
+      const p = game.player;
+      const d = Math.round(Math.hypot(g.x + 0.5 - p.x, g.y + 0.5 - p.y));
+      ctx.font = 'bold 14px "Segoe Print", "Bradley Hand", casual, cursive';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      const bx = -Math.cos(a) * 30;
+      const by = -Math.sin(a) * 30;
+      ctx.fillStyle = 'rgba(242,232,206,0.95)';
+      ctx.strokeStyle = '#1d1915';
+      ctx.lineWidth = 1.5;
+      roundRect(ctx, bx - 18, by - 11, 36, 22, 8);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = '#1d1915';
+      ctx.fillText(String(d), bx, by + 1);
+    }
     ctx.rotate(a);
     const bob = Math.sin(time * 5) * 3;
-    ctx.fillStyle = game.exitLocked ? 'rgba(110,40,140,0.9)' : 'rgba(201,150,43,0.95)';
+    ctx.scale(size, size);
+    ctx.fillStyle = g.color;
     ctx.strokeStyle = '#1d1915';
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 2.5;
     ctx.beginPath();
-    ctx.moveTo(16 + bob, 0);
-    ctx.lineTo(-8 + bob, -11);
-    ctx.lineTo(-3 + bob, 0);
-    ctx.lineTo(-8 + bob, 11);
+    ctx.moveTo(20 + bob, 0);
+    ctx.lineTo(-10 + bob, -14);
+    ctx.lineTo(-4 + bob, 0);
+    ctx.lineTo(-10 + bob, 14);
     ctx.closePath();
     ctx.fill();
     ctx.stroke();

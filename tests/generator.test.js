@@ -64,3 +64,16 @@ test('later floors demand more ink on average', () => {
   };
   assert.ok(avg(10) > avg(1) + 2);
 });
+
+test('every floor forces ink: several crossings on the cheapest route', () => {
+  for (let floor = 1; floor <= BOSS_FLOOR; floor++) {
+    let total = 0;
+    for (let s = 0; s < 20; s++) {
+      const g = generateFloor(floor, 31 + s * 977);
+      assert.ok(g.crossings.length >= 2, `floor ${floor}: at least 2 crossings (got ${g.crossings.length})`);
+      assert.ok(g.cost >= 5, `floor ${floor}: needs at least 5 ink (got ${g.cost})`);
+      total += g.crossings.length;
+    }
+    if (floor >= 4 && floor < BOSS_FLOOR) assert.ok(total / 20 >= 4, `floor ${floor}: ~4+ crossings on average`);
+  }
+});

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Game } from '../src/game/game.js';
 import { Run } from '../src/game/run.js';
 import { INK, T, MOVER } from '../src/world/tiles.js';
-import { minInkCost } from '../src/world/solver.js';
+import { minInkCost, inkField } from '../src/world/solver.js';
 import { botPlayFloor, step, drawTiles } from './helpers.js';
 import { BOSS_FLOOR } from '../src/config.js';
 
@@ -16,14 +16,14 @@ function makeGame(floor, seed, opts = {}) {
   return new Game({ run, ...opts });
 }
 
-test('rewrite waves never make a floor unbeatable (frequent waves, bot still wins)', () => {
+test('rewrite waves never make a floor unbeatable (a wave every 15s, bot still wins)', () => {
   for (let seed = 1; seed <= 4; seed++) {
     for (let floor = 1; floor <= 10; floor++) {
       const g = makeGame(floor, seed * 101, { noEnemies: true });
       g.run.hearts = 99; // fire from waves may singe the bot - we test reachability here
-      g.rewrite.interval = 4;
-      g.rewrite.timeLeft = 2;
-      const res = botPlayFloor(g, 600);
+      g.rewrite.interval = 15;
+      g.rewrite.timeLeft = 6;
+      const res = botPlayFloor(g, 900);
       assert.ok(res.ok, `seed ${seed} floor ${floor}: ${res.reason}`);
       assert.ok(g.rewrite.count >= 1, 'at least one wave happened');
     }
@@ -117,4 +117,59 @@ test('undoing a bridge under a smudge traps it', () => {
   assert.ok(g.undo());
   assert.equal(e.alive, false);
   assert.equal(g.run.stats.trapped, 1);
+});
+
+test('smudges guard the far side of crossings, and the pen draws them in', () => {
+  let guarded = 0;
+  for (let seed = 1; seed <= 10; seed++) {
+    const g = makeGame(3, seed * 59);
+    guarded += g.enemies.filter((e) => e.kind === 'smudge' && e.post >= 0).length;
+    // Draw next to a calm smudge: it should come running.
+    const e = g.enemies.find((x) => x.kind === 'smudge');
+    const w = g.world;
+    e.state = 'wander';
+    e.sated = 0;
+    g.enemySystem.hearInk(g, [w.idx(e.tx, e.ty)]);
+    assert.equal(e.state, 'chase');
+  }
+  assert.ok(guarded >= 15, `guards posted (${guarded} over 10 floors)`);
+});
+
+test('a rewrite wave tears the way ahead, but inked tiles survive the tear', () => {
+  let cuts = 0;
+  for (let seed = 1; seed <= 8; seed++) {
+    const g = makeGame(4, seed * 211, { noEnemies: true });
+    const w = g.world;
+    // Ink a column of explored ground straight ahead (towards the stairs).
+    const p = g.player;
+    for (let y = p.ty - 1; y >= p.ty - 14; y--) {
+      w.explored[w.idx(p.tx, y)] = 1;
+    }
+    const col = [];
+    for (let y = p.ty - 1; y >= p.ty - 14; y--) {
+      const i = w.idx(p.tx, y);
+      if (w.terrain[i] === T.GROUND) col.push(i);
+    }
+    for (const i of col) w.setInk(i, INK.BLACK);
+    const before = col.map((i) => w.terrain[i]);
+    g.rewrite.timeLeft = 0.01;
+    let cut = false;
+    g.events.on('rewriteEnd', (d) => (cut = d.cut));
+    step(g, 3.5);
+    if (cut) cuts++;
+    assert.deepEqual(col.map((i) => w.terrain[i]), before, 'inked ground is never torn');
+  }
+  assert.ok(cuts >= 5, `most waves tear the route (${cuts}/8)`);
+});
+
+test('guards stand on the far bank of their crossing', () => {
+  for (let seed = 1; seed <= 15; seed++) {
+    const g = makeGame(5, seed * 113);
+    const w = g.world;
+    const reach = inkField(w.w, w.h, w.terrain, w.ink, w.scrib, w.idx(w.start.x, w.start.y)).dist;
+    for (const e of g.enemies) {
+      if (e.post < 0 || e.post === undefined) continue;
+      assert.ok(reach[e.tile] >= reach[e.post], `seed ${seed}: guard at ${e.tx},${e.ty} is past its crossing`);
+    }
+  }
 });

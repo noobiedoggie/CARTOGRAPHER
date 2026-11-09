@@ -8,6 +8,9 @@ import { BAL, BOSS_FLOOR } from '../config.js';
 import { INK } from '../world/tiles.js';
 import { randomSeed } from '../core/rng.js';
 
+/** Floor on which each ink is handed to the explorer during a run. */
+export const INK_FLOOR = { blue: 2, red: 3 };
+
 export function freshStats() {
   return {
     inkUsed: 0,
@@ -53,14 +56,27 @@ export class Run {
     this.upgrades[id] = this.upg(id) + 1;
   }
 
-  /** Is an ink type available this run? Black is always available. */
+  /**
+   * Is an ink type available right now? Black always; blue from floor 2 and
+   * red from floor 3 (or from floor 1 with the Atlas unlocks); gold only via
+   * the Atlas.
+   */
   hasInk(type) {
     if (type === INK.BLACK) return true;
     const u = this.meta.unlocked || {};
-    if (type === INK.BLUE) return !!u.blue;
-    if (type === INK.RED) return !!u.red;
+    if (type === INK.BLUE) return !!u.blue || this.floor >= INK_FLOOR.blue;
+    if (type === INK.RED) return !!u.red || this.floor >= INK_FLOOR.red;
     if (type === INK.GOLD) return !!u.gold;
     return false;
+  }
+
+  /** Inks that become available for the first time on the current floor. */
+  newInks() {
+    const u = this.meta.unlocked || {};
+    const out = [];
+    if (!u.blue && this.floor === INK_FLOOR.blue) out.push(INK.BLUE);
+    if (!u.red && this.floor === INK_FLOOR.red) out.push(INK.RED);
+    return out;
   }
 
   get isBossFloor() {

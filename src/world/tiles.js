@@ -16,8 +16,9 @@ export const T = Object.freeze({
   EXIT: 9, // stairs down
   ANCHOR: 10, // boss floor seal (step on it)
   ANCHOR_LIT: 11,
+  VOID: 12, // a hole torn in the page - like a chasm, bridgeable with black ink
 });
-export const TILE_TYPES = 12;
+export const TILE_TYPES = 13;
 
 /** Ink layer values. GOLD is never stored on the map (it only reveals). */
 export const INK = Object.freeze({ NONE: 0, BLACK: 1, BLUE: 2, RED: 3, GOLD: 4 });
@@ -45,5 +46,7 @@ export const isStable = (t) => STABLE[t] === 1;
 export const isFlammable = (t) => FLAMMABLE[t] === 1;
 export const isPaintable = (t) => PAINTABLE[t] === 1;
 export const isFeature = (t) => FEATURE[t] === 1;
-export const isBridgeable = (t) => t === T.CHASM || t === T.WATER;
+export const isBridgeable = (t) => t === T.CHASM || t === T.WATER || t === T.VOID;
+/** Holes you can fall into (enemies on them are trapped). */
+export const isPit = (t) => t === T.CHASM || t === T.VOID;
 export const isLooseFeature = (t) => t === T.POOL || t === T.CHEST;

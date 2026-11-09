@@ -2,8 +2,8 @@
  * Test helpers: a headless "cartographer bot" that plays a floor through the
  * real Game API (tap-to-walk + ink strokes), guided by the floor solver.
  */
-import { cheapestRoute, inkNeed } from '../src/world/solver.js';
-import { INK } from '../src/world/tiles.js';
+import { cheapestRoute, inkNeed, inkField } from '../src/world/solver.js';
+import { INK, T } from '../src/world/tiles.js';
 
 export const DT = 1 / 30;
 
@@ -44,8 +44,22 @@ export function botPlayFloor(game, maxSeconds = 400) {
   let lastTile = -1;
   while (!game.done && !game.dead && game.time < maxSeconds) {
     const route = cheapestRoute(w.w, w.h, w.terrain, w.ink, w.scrib, game.playerTile, exit);
+    // Mid-sweep the page is half old, half new: wait for the wave to finish.
+    if (game.rewrite && game.rewrite.sweeping) {
+      step(game, 0.25);
+      continue;
+    }
     if (!isFinite(route.cost)) return { ok: false, reason: 'no route', time: game.time };
-    if (route.cost > Math.floor(game.run.ink)) return { ok: false, reason: `ink ${game.run.ink} < ${route.cost}`, time: game.time };
+    if (route.cost > Math.floor(game.run.ink)) {
+      // Short on ink: refill at the nearest pool reachable for free, else wait for a wave.
+      const { dist } = inkField(w.w, w.h, w.terrain, w.ink, w.scrib, game.playerTile);
+      let pool = -1;
+      for (let i = 0; i < w.n; i++) if (w.terrain[i] === T.POOL && dist[i] === 0) pool = i;
+      if (pool >= 0) walkTo(game, pool, 60);
+      else step(game, 1);
+      if (game.time - lastProgress > 120) return { ok: false, reason: `ink ${game.run.ink} < ${route.cost}`, time: game.time };
+      continue;
+    }
     const need = (i) => inkNeed(w.terrain, w.ink, w.scrib, i);
     let k = 0;
     while (k + 1 < route.path.length && need(route.path[k + 1]) === 0) k++;

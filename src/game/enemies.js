@@ -11,9 +11,10 @@
  *              map into chasm. Red walls stall it, water slows it.
  */
 import { BAL } from '../config.js';
-import { T, INK, MOVER, isPaintable, isStable } from '../world/tiles.js';
+import { T, INK, MOVER, isPaintable, isStable, isPit } from '../world/tiles.js';
 import { lineOfSight } from '../world/vision.js';
 import { bfsFind, bfsPath, nearestTile } from '../world/pathfinding.js';
+import { inkField } from '../world/solver.js';
 
 const DX4 = [1, -1, 0, 0];
 const DY4 = [0, 0, 1, -1];
@@ -144,6 +145,7 @@ export class Enemy {
 export class Smudge extends Enemy {
   constructor(tx, ty, w) {
     super('smudge', MOVER.SMUDGE, tx, ty, w);
+    this.post = -1; // guard post (tile) or -1 for a free roamer
   }
   update(game, dt) {
     this.anim += dt;
@@ -185,7 +187,10 @@ export class Smudge extends Enemy {
         this.idle -= dt;
         if (this.idle <= 0) {
           this.idle = 0.6 + Math.random() * 1.8;
-          this.wander(game);
+          const w = game.world;
+          if (this.post >= 0 && Math.abs(w.xOf(this.post) - this.tx) + Math.abs(w.yOf(this.post) - this.ty) > 4) {
+            this.chasePath(game, w.xOf(this.post), w.yOf(this.post)); // back to the post
+          } else this.wander(game, this.post >= 0 ? 3 : 6);
         }
       }
     }
@@ -239,7 +244,7 @@ export class Eraser extends Enemy {
     // No ink anywhere near: drift towards the explorer.
     this.state = 'drift';
     const p = game.player;
-    if (this.sated <= 0 && this.distTo(p) < 10 && Math.random() < 0.35) this.chasePath(game, p.tx, p.ty);
+    if (this.sated <= 0 && this.distTo(p) < 10 && Math.random() < 0.2) this.chasePath(game, p.tx, p.ty);
     else this.wander(game, 7);
   }
 
@@ -448,8 +453,8 @@ export class Devourer extends Enemy {
           ate = true;
         }
         const t = w.terrain[i];
-        if (t !== T.CHASM && !isStable(t)) {
-          w.setTerrain(i, T.CHASM);
+        if (!isPit(t) && !isStable(t)) {
+          w.setTerrain(i, T.VOID); // the Devourer tears holes in the page
           w.fire[i] = 0;
           w.scrib[i] = 0;
           ate = true;
@@ -487,9 +492,9 @@ export class Devourer extends Enemy {
 /** Number of each enemy type on a normal floor. */
 export function enemyCounts(floor) {
   return {
-    smudge: floor <= 1 ? 1 : Math.min(5, 1 + Math.floor(floor / 2)),
-    eraser: floor >= 3 ? 1 + Math.floor((floor - 3) / 3) : 0,
-    scribbler: floor >= 5 ? 1 + Math.floor((floor - 5) / 3) : 0,
+    smudge: floor <= 2 ? 2 : floor <= 4 ? 3 : floor <= 7 ? 4 : 5,
+    eraser: floor >= 2 ? Math.min(3, 1 + Math.floor((floor - 2) / 3)) : 0,
+    scribbler: floor >= 4 ? Math.min(2, 1 + Math.floor((floor - 4) / 3)) : 0,
   };
 }
 
@@ -505,7 +510,70 @@ export class EnemySystem {
     this.spawnEnabled = spawnEnabled;
     if (!spawnEnabled) return;
     const counts = game.isBoss ? { smudge: 2, eraser: 1, scribbler: 0 } : enemyCounts(game.floor);
-    for (const [kind, n] of Object.entries(counts)) for (let k = 0; k < n; k++) this.spawn(kind, 14, true);
+    // Smudges stand guard on the far side of the crossings you'll have to
+    // bridge (on floor 1 the first crossing is left free for learning).
+    // Ink needed to reach each tile from the start: guards must stand on the
+    // far bank of their crossing (at least as costly to reach as the landing).
+    const w0 = game.world;
+    this.reach = inkField(w0.w, w0.h, w0.terrain, w0.ink, w0.scrib, w0.idx(w0.start.x, w0.start.y)).dist;
+    let guards = 0;
+    const maxGuards = game.floor <= 1 ? 1 : game.floor <= 3 ? 2 : counts.smudge;
+    const crossings = (game.gen.crossings || []).slice(game.floor <= 1 ? 1 : 0);
+    for (const c of crossings) {
+      if (guards >= Math.min(maxGuards, counts.smudge)) break;
+      if (this.spawnGuard(c)) guards++;
+    }
+    for (let k = guards; k < counts.smudge; k++) this.spawn('smudge', 14, true);
+    for (const kind of ['eraser', 'scribbler']) for (let k = 0; k < counts[kind]; k++) this.spawn(kind, 14, true);
+  }
+
+  /** Post a Smudge 2-3 tiles past a crossing, out of the explorer's sight. */
+  spawnGuard(crossing) {
+    const game = this.game;
+    const w = game.world;
+    const fx = w.xOf(crossing.far);
+    const fy = w.yOf(crossing.far);
+    const p = game.player;
+    const cands = [];
+    for (let dy = -3; dy <= 3; dy++)
+      for (let dx = -3; dx <= 3; dx++) {
+        const x = fx + dx;
+        const y = fy + dy;
+        if (!w.inside(x, y)) continue;
+        const i = w.idx(x, y);
+        const d = Math.abs(dx) + Math.abs(dy);
+        if (d < 3 || d > 5 || !w.canWalk(i, MOVER.SMUDGE) || w.visible[i]) continue;
+        if (this.reach[i] < this.reach[crossing.far]) continue; // wrong bank
+        if (Math.abs(x - p.tx) + Math.abs(y - p.ty) < 7) continue;
+        cands.push(i);
+      }
+    if (!cands.length) return null;
+    const i = cands[Math.floor(game.rng.next() * cands.length)];
+    const e = new Smudge(w.xOf(i), w.yOf(i), w.w);
+    e.post = crossing.far;
+    game.enemies.push(e);
+    return e;
+  }
+
+  /** The scratch of the pen carries: nearby Smudges come running, Erasers re-plan. */
+  hearInk(game, tiles) {
+    const w = game.world;
+    for (const e of game.enemies) {
+      if (!e.alive || e.stun > 0) continue;
+      if (e.kind === 'eraser') {
+        e.think = 0;
+        continue;
+      }
+      if (e.kind !== 'smudge' || e.sated > 0 || e.state === 'chase') continue;
+      const radius = game.floor <= 1 ? 4 : 6;
+      const near = tiles.some((i) => Math.hypot(w.xOf(i) + 0.5 - e.x, w.yOf(i) + 0.5 - e.y) <= radius);
+      if (!near) continue;
+      e.state = 'chase';
+      e.alert = 1;
+      e.lost = 0;
+      e.repath = 0;
+      game.events.emit('alert', { e, visible: w.visible[e.tile] === 1, heard: true });
+    }
   }
 
   /** Spawn an enemy on a valid tile away from the explorer (unseen if possible). */
@@ -557,7 +625,9 @@ export class EnemySystem {
       // Contact damage
       const reach = e.kind === 'boss' ? 1.45 : 0.62;
       if (!game.dead && e.distTo(p) < reach && (e.kind !== 'boss' || e.dormant <= 0)) {
-        if (game.damage(e.kind)) {
+        // Smudges smear your inkwell; only a nearly dry explorer loses a heart.
+        const hurt = e.kind === 'smudge' ? game.smear(e) : game.damage(e.kind);
+        if (hurt) {
           if (e.kind === 'boss') this.knockback(game, e);
           else {
             // Satisfied, the enemy backs off for a while - one hit per encounter.
@@ -617,10 +687,10 @@ export class EnemySystem {
       if (w.canWalk(i, e.mover)) continue;
       const t = w.terrain[i];
       const k = w.ink[i];
-      if ((t === T.CHASM || t === T.WATER || k === INK.BLUE) && k !== INK.BLACK && k !== INK.RED) {
+      if ((isPit(t) || t === T.WATER || k === INK.BLUE) && k !== INK.BLACK && k !== INK.RED) {
         e.alive = false;
         game.run.stats.trapped++;
-        game.events.emit('trapped', { e, x: e.x, y: e.y, into: t === T.CHASM ? 'chasm' : 'water' });
+        game.events.emit('trapped', { e, x: e.x, y: e.y, into: isPit(t) ? 'chasm' : 'water' });
         continue;
       }
       const safe = nearestTile(w.w, w.h, i, (j) => w.canWalk(j, e.mover), 6);

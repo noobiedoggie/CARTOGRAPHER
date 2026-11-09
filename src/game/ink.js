@@ -54,7 +54,7 @@ export function canDraw(game, i, type) {
   if (type === INK.BLACK) return true; // path on ground, bridge over chasm/water, or overwrite a wall
   // Water and walls can't be painted under the explorer or an enemy.
   if (game.isOccupied(i)) return false;
-  if (type === INK.BLUE) return isPaintable(t) || t === T.CHASM || k !== INK.NONE;
+  if (type === INK.BLUE) return isPaintable(t) || t === T.CHASM || t === T.VOID || k !== INK.NONE;
   if (type === INK.RED) return isPaintable(t) || k === INK.BLACK || k === INK.BLUE;
   return false;
 }

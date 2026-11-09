@@ -51,7 +51,10 @@ export class Game {
     this.stroke = null;
     this.lastStroke = null; // undo record
     this.animInk = []; // freshly drawn tiles bleeding in
-    this.exitKnown = false;
+    // The stairs always shine through the fog (beacon + compass). `exitSeen`
+    // is whether you have actually laid eyes on the area around them.
+    this.exitKnown = true;
+    this.exitSeen = false;
     this.done = false; // floor finished (exit reached)
     this.dead = false;
     this.deathTimer = 0;
@@ -60,7 +63,6 @@ export class Game {
 
     this.exitLocked = false;
     this.boss = null;
-    if (run.upg('compass')) this.exitKnown = true;
     this.enemies = [];
     this.projectiles = [];
 
@@ -75,8 +77,65 @@ export class Game {
     this.systems = [this.hazards, this.enemySystem, this.rewrite, this.bossFloor].filter(Boolean);
   }
 
+  /** Where the player should head now: stairs, or the nearest unlit anchor. */
+  currentGoal() {
+    const w = this.world;
+    if (this.bossFloor && this.exitLocked) {
+      const p = this.player;
+      let best = null;
+      let bestD = Infinity;
+      for (const a of this.gen.anchors) {
+        if (w.terrain[a] !== T.ANCHOR) continue;
+        const d = Math.hypot(w.xOf(a) - p.tx, w.yOf(a) - p.ty);
+        if (d < bestD) {
+          bestD = d;
+          best = { x: w.xOf(a), y: w.yOf(a), kind: 'anchor' };
+        }
+      }
+      if (best) return best;
+    }
+    return { x: w.exit.x, y: w.exit.y, kind: 'exit' };
+  }
+
+  /** Lights drawn above the fog so you always know where to go. */
+  beacons() {
+    const w = this.world;
+    const out = [{ x: w.exit.x, y: w.exit.y, kind: 'exit', color: this.exitLocked ? '170,90,220' : '255,196,80' }];
+    if (this.bossFloor) for (const a of this.gen.anchors) if (w.terrain[a] === T.ANCHOR) out.push({ x: w.xOf(a), y: w.yOf(a), kind: 'anchor', color: '255,150,60' });
+    return out;
+  }
+
+  /** Edge-of-screen arrows: the goal, plus the nearest ink pool with the Ink Compass upgrade. */
+  compassTargets() {
+    const g = this.currentGoal();
+    const out = [{ x: g.x, y: g.y, color: g.kind === 'anchor' ? '#e08a3a' : this.exitLocked ? '#8e4ab8' : '#d9a536' }];
+    if (this.run.upg('compass')) {
+      const w = this.world;
+      const p = this.player;
+      let best = -1;
+      let bestD = Infinity;
+      for (let i = 0; i < w.n; i++) {
+        if (w.terrain[i] !== T.POOL) continue;
+        const d = Math.hypot(w.xOf(i) - p.tx, w.yOf(i) - p.ty);
+        if (d < bestD) {
+          bestD = d;
+          best = i;
+        }
+      }
+      if (best >= 0) out.push({ x: w.xOf(best), y: w.yOf(best), color: '#2a2440', small: true });
+    }
+    return out;
+  }
+
   objectiveText() {
-    return this.bossFloor ? this.bossFloor.objective() : '';
+    if (this.bossFloor) return this.bossFloor.objective();
+    const w = this.world;
+    const p = this.player;
+    const d = Math.round(Math.hypot(w.exit.x - p.tx, w.exit.y - p.ty));
+    const a = Math.atan2(w.exit.y - p.ty, w.exit.x - p.tx);
+    const arrows = ['\u2192', '\u2198', '\u2193', '\u2199', '\u2190', '\u2196', '\u2191', '\u2197'];
+    const arrow = arrows[(Math.round(a / (Math.PI / 4)) + 8) % 8];
+    return `Stairs ${arrow} ${d}`;
   }
 
   /** Enemy ink blot projectile from (x,y) aimed at (tx,ty) (tile units). */
@@ -91,18 +150,19 @@ export class Game {
   /** After each rewrite wave: new trouble appears in the redrawn areas. */
   onRewrite(changed) {
     if (this.dead || this.done) return;
-    if (this.floor >= 4 && !this.isBoss && this.enemySystem.spawnEnabled && this.rng.chance(0.6)) {
-      const kinds = this.floor >= 6 && this.rng.chance(0.3) ? 'eraser' : 'smudge';
-      this.enemySystem.spawn(kinds, 10);
+    // Something crawls out of the freshly written page.
+    if (this.floor >= 2 && !this.isBoss && this.enemySystem.spawnEnabled) {
+      const kinds = this.floor >= 3 && this.rng.chance(0.35) ? 'eraser' : 'smudge';
+      this.enemySystem.spawn(kinds, 9);
     }
-    if (this.floor >= 3 && changed.length) {
+    if (this.floor >= 4 && changed.length) {
       const p = this.player;
       const w = this.world;
       const far = changed.filter((i) => {
         const d = Math.abs(w.xOf(i) - p.tx) + Math.abs(w.yOf(i) - p.ty);
         return d >= 6 && d <= 16 && w.terrain[i] === T.GROUND;
       });
-      const embers = 1 + Math.floor(this.floor / 4);
+      const embers = 1 + Math.floor(this.floor / 5);
       for (let k = 0; k < embers && far.length; k++) {
         const i = far.splice(Math.floor(this.rng.next() * far.length), 1)[0];
         if (this.hazards.ignite(this, i)) this.events.emit('ignite', { i });
@@ -311,11 +371,11 @@ export class Game {
     }
     if (s.type === INK.GOLD) {
       run.gold -= cost;
-      if (!this.exitKnown) {
-        this.exitKnown = true;
+      if (!this.exitSeen) {
+        this.exitSeen = true;
         const e = w.exit;
-        revealDisc(w, e.x, e.y, 1.5, revealed);
-        this.events.emit('toast', { text: 'The gold ink points the way to the stairs', kind: 'gold' });
+        revealDisc(w, e.x, e.y, 3.5, revealed);
+        this.events.emit('toast', { text: 'The gold ink lights up the way around the stairs', kind: 'gold' });
       }
       this.lastStroke = null;
     } else {
@@ -325,6 +385,7 @@ export class Game {
     run.stats.inkUsed += cost;
     run.stats.tilesDrawn += n;
     this.floorStats.strokes++;
+    if (s.type !== INK.GOLD) this.enemySystem.hearInk(this, s.tiles.slice(0, n));
     this.events.emit('stroke', { type: s.type, tiles: s.tiles.slice(0, n), cost, partial: n < s.tiles.length });
     this.afterTerrainChange();
   }
@@ -469,8 +530,8 @@ export class Game {
     const w = this.world;
     if (newly.length) {
       const e = w.idx(w.exit.x, w.exit.y);
-      if (!this.exitKnown && w.explored[e]) {
-        this.exitKnown = true;
+      if (!this.exitSeen && w.visible[e]) {
+        this.exitSeen = true;
         this.events.emit('exitSeen', {});
       }
       this.events.emit('reveal', { tiles: newly });
@@ -519,11 +580,11 @@ export class Game {
       run.gold += 2;
       text = '+2 gold ink';
       kind = 'gold';
-    } else if (r < 0.4 && !this.exitKnown) {
-      this.exitKnown = true;
+    } else if (r < 0.4 && !this.exitSeen) {
+      this.exitSeen = true;
       const e = w.exit;
-      revealDisc(w, e.x, e.y, 2.5);
-      text = 'A map fragment! The stairs are revealed';
+      revealDisc(w, e.x, e.y, 3.5);
+      text = 'A map fragment! The land around the stairs is charted';
       kind = 'map';
     } else if (r < 0.7) {
       const pages = 2 + this.rng.int(0, 2) + run.perk('scavenger');
@@ -566,6 +627,23 @@ export class Game {
     this.player.path = [];
     this.events.emit('fall', { x: w.xOf(i), y: w.yOf(i) });
     this.damage('fall', true);
+  }
+
+  /**
+   * A Smudge touches the explorer: it smears BAL.smudgeDrain ink out of the
+   * inkwell. With too little ink left to smear, it costs a heart instead.
+   */
+  smear(e) {
+    const p = this.player;
+    if (this.dead || this.done || p.invuln > 0) return false;
+    const run = this.run;
+    if (run.ink < BAL.smudgeDrain) return this.damage('smudge');
+    run.ink -= BAL.smudgeDrain;
+    run.stats.smears = (run.stats.smears || 0) + 1;
+    p.invuln = BAL.smearInvuln;
+    p.hurtFlash = 0.35;
+    this.events.emit('smeared', { amount: BAL.smudgeDrain, x: e.x, y: e.y });
+    return true;
   }
 
   /** Lose a heart (unless invulnerable). */

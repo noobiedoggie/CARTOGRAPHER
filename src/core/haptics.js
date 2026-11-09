@@ -33,6 +33,12 @@ export class HapticsFX {
     safe(Haptics.impact({ style: ImpactStyle.Heavy }));
     safe(Haptics.vibrate({ duration: 120 }));
   }
+  /** The page crumples: a long rumble with heavy knocks. */
+  rumble() {
+    if (!this.enabled) return;
+    safe(Haptics.vibrate({ duration: 700 }));
+    for (const t of [0, 250, 600, 1000]) setTimeout(() => safe(Haptics.impact({ style: ImpactStyle.Heavy })), t);
+  }
   death() {
     if (this.enabled) safe(Haptics.notification({ type: NotificationType.Error }));
   }

@@ -105,6 +105,18 @@ export function bindFeedback(game, { renderer, camera, hud, audio, haptics }) {
     if (d.source === 'fire') hud.toast('Burned!', 'warn', 1000);
   });
   ev.on('fall', () => hud.toast('You fell! Back on solid ground...', 'warn'));
+  let smearToasts = 0;
+  ev.on('smeared', (d) => {
+    const p = game.player;
+    camera.shake(8);
+    renderer.flash = 0.3;
+    fx.burst(p.x * S, p.y * S, 22, { color: '#1d1915', speed: 140, size: 3, gravity: 120 });
+    fx.text(p.x * S, p.y * S - 22, `-${d.amount} ink`, '#1d1915', 16);
+    hud.flashInk();
+    A('smear');
+    H('hit');
+    if (smearToasts++ < 2) hud.toast('A Smudge smeared your ink! Run dry and it will cost a heart.', 'warn', 2400);
+  });
   ev.on('dying', () => {
     A('death');
     H('death');
@@ -159,18 +171,28 @@ export function bindFeedback(game, { renderer, camera, hud, audio, haptics }) {
 
   // --- The world rewrites itself ------------------------------------------
   ev.on('rewriteWarn', () => {
-    hud.toast('The page trembles... the world will rewrite!', 'danger', 2600);
+    hud.toast('The page trembles... ink your route before it is rewritten!', 'danger', 3000);
     A('droneStart');
     H('light');
   });
-  ev.on('rewriteStart', () => {
-    camera.shake(4);
-    A('rewrite');
+  ev.on('rewriteTick', (d) => {
+    camera.shake(2 + (4 - d.n) * 2);
+    A('tick', d.n);
     H('medium');
+  });
+  ev.on('rewriteStart', () => {
+    camera.shake(14);
+    renderer.flash = 0.35;
+    renderer.flashColor = '45,28,12';
+    A('rewrite');
+    H('rumble');
   });
   ev.on('rewriteEnd', (d) => {
     A('droneStop');
-    if (d.rescue === 'carved') hud.toast('The rewrite opened a new passage', 'info');
+    renderer.flashColor = '163,48,42';
+    if (d.cut) hud.toast('The page tore open across your way! Only your ink held.', 'danger', 3200);
+    else hud.toast('The world has been rewritten. Only your ink remains.', 'danger', 2600);
+    if (d.rescue === 'carved') hud.toast('...but a new passage opened', 'info');
   });
 
   // --- Boss ------------------------------------------------------------------

@@ -38,9 +38,9 @@ export function migrateMeta(m) {
 }
 
 export const INK_UNLOCKS = [
-  { id: 'blue', name: 'Blue Ink', desc: 'Paints water. Smudges cannot cross it, and it puts out fire.', cost: 10 },
-  { id: 'red', name: 'Red Ink', desc: 'Builds walls that block everything - even ink blots.', cost: 25 },
-  { id: 'gold', name: 'Gold Ink', desc: 'Rare. Burns away fog around each drop and marks the stairs. Start runs with 3.', cost: 45 },
+  { id: 'blue', name: 'Early Blue', desc: 'Start every run with blue ink (water) instead of finding it on floor 2.', cost: 8 },
+  { id: 'red', name: 'Early Red', desc: 'Start every run with red ink (walls) instead of finding it on floor 3.', cost: 15 },
+  { id: 'gold', name: 'Gold Ink', desc: 'Rare. Burns away the fog around each drop. Start runs with 3, find more in chests.', cost: 35 },
 ];
 
 export const PERKS = [

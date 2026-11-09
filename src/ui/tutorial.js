@@ -44,6 +44,11 @@ const STEPS = [
   },
   { id: 'fog', text: 'The world is hidden in fog. Everything you have seen stays on your map as a faded <b>sketch</b>.', auto: 5 },
   {
+    id: 'exit',
+    text: 'The <b>golden light</b> marks the stairs - follow the compass needle at the edge of the screen. Every ravine on the way needs a bridge of ink.',
+    auto: 7,
+  },
+  {
     id: 'draw',
     when: (g) => findVisible(g, (w, i) => isBridgeable(w.terrain[i]) && !w.ink[i]) >= 0,
     text: 'Something blocks the way! <b>Press and hold</b>, then <b>drag</b> across it to draw a bridge of ink.',
@@ -69,12 +74,15 @@ const STEPS = [
     auto: 9,
   },
   {
-    id: 'exit',
+    id: 'smudge',
     interrupt: true,
-    when: (g) => g.exitKnown,
-    text: 'There are the <b>stairs</b>! Reach them to finish the floor. Watch out for <b>Smudges</b> - they can\'t cross water.',
-    auto: 7,
-    target: (g) => g.world.idx(g.world.exit.x, g.world.exit.y),
+    when: (g) => g.enemies.some((e) => e.kind === 'smudge' && g.world.visible[e.tile]),
+    text: 'A <b>Smudge</b>! Its touch <b>smears 8 ink</b> from your inkwell - and costs a heart if you run dry. The pen\'s scratch draws it in. <b>Trick:</b> let it step on your bridge, then hit <b>Undo</b>...',
+    auto: 8,
+    target: (g) => {
+      const e = g.enemies.find((e) => e.kind === 'smudge' && g.world.visible[e.tile]);
+      return e ? e.tile : -1;
+    },
   },
 ];
 

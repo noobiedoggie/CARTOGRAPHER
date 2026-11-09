@@ -15,32 +15,35 @@
 import { RNG } from '../core/rng.js';
 import { MAP_W, MAP_H, BOSS_FLOOR, BAL } from '../config.js';
 import { T, terrainWalkable } from './tiles.js';
-import { inkField } from './solver.js';
+import { inkField, cheapestRoute, inkNeed } from './solver.js';
 
-const MIN_COST = [0, 2, 2, 3, 4, 4, 5, 5, 6, 6, 7];
+/** Minimum ink the cheapest route to the stairs must cost, per floor (1..10). */
+const MIN_COST = [0, 5, 6, 7, 8, 9, 10, 10, 11, 11, 12];
 
 /** Difficulty profile for a floor number (1-based). */
 export function floorParams(floor) {
   const boss = floor >= BOSS_FLOOR;
-  let rifts;
-  if (boss) rifts = { count: 2, minW: 2, maxW: 3 };
-  else if (floor <= 1) rifts = { count: 1, minW: 2, maxW: 3 };
-  else if (floor === 2) rifts = { count: 2, minW: 1, maxW: 3 };
-  else if (floor <= 4) rifts = { count: 2, minW: 2, maxW: 3 };
-  else if (floor <= 7) rifts = { count: 3, minW: 1, maxW: 3 };
-  else rifts = { count: 3, minW: 2, maxW: 4 };
+  let barriers;
+  if (boss) barriers = { count: 3, minW: 2, maxW: 4 };
+  else if (floor <= 1) barriers = { count: 2, minW: 2, maxW: 3 };
+  else if (floor <= 3) barriers = { count: 3, minW: 2, maxW: 4 };
+  else if (floor <= 6) barriers = { count: 4, minW: 2, maxW: 4 };
+  else barriers = { count: 5, minW: 2, maxW: 5 };
   return {
     floor,
     boss,
-    fill: boss ? 0.37 : Math.min(0.455, 0.42 + floor * 0.0035),
-    rifts,
-    riverChance: floor <= 1 ? 0 : 0.35,
-    lakes: boss ? 1 : floor <= 1 ? 1 : 2 + (floor >= 5 ? 1 : 0),
+    // Higher fill = more rock = narrower, twistier caves.
+    fill: boss ? 0.43 : Math.min(0.5, 0.47 + floor * 0.003),
+    barriers,
+    // Barrier kinds: ravine (chasm), river (water) and void (a hole torn in the page).
+    kinds: floor <= 1 ? [T.CHASM, T.CHASM, T.WATER] : [T.CHASM, T.WATER, T.VOID],
+    moat: !boss, // a ring of water/void around the stairs: one last bridge to draw
+    lakes: boss ? 1 : 1 + (floor >= 4 ? 1 : 0),
     ruins: boss ? 3 : 2 + (floor >= 5 ? 1 : 0),
-    pools: boss ? 3 : floor <= 3 ? 3 : 2 + (floor >= 7 ? 1 : 0),
+    pools: boss ? 4 : 3,
     chests: boss ? 1 : 2 + (floor >= 4 ? 1 : 0),
-    minCost: boss ? 4 : MIN_COST[Math.min(floor, MIN_COST.length - 1)],
-    maxCost: Math.floor(BAL.startInk * 0.55),
+    minCost: boss ? 7 : MIN_COST[Math.min(floor, MIN_COST.length - 1)],
+    maxCost: Math.floor(BAL.startInk * 0.5),
   };
 }
 
@@ -99,7 +102,7 @@ function noise1D(rng, len, period) {
  * A horizontal-ish band of chasm/water that spans the map. It only replaces
  * ground; rock stays rock, so the band is always an unbroken barrier.
  */
-function carveRift(rng, terr, w, h, y0, minW, maxW, kind) {
+function carveRift(rng, terr, w, h, y0, minW, maxW, kind, sway = 3) {
   const widthNoise = noise1D(rng, w, rng.int(4, 7));
   let cy = y0;
   for (let x = 1; x < w - 1; x++) {
@@ -108,6 +111,7 @@ function carveRift(rng, terr, w, h, y0, minW, maxW, kind) {
     const r = rng.next() + drift * 0.5;
     if (r < 0.28) cy -= 1;
     else if (r > 0.72) cy += 1;
+    cy = Math.max(y0 - sway, Math.min(y0 + sway, cy));
     cy = Math.max(4, Math.min(h - 5, cy));
     const wd = Math.max(minW, Math.min(maxW, minW + Math.round(widthNoise(x) * (maxW - minW + 0.6) - 0.3)));
     const top = cy - Math.floor((wd - 1) / 2);
@@ -179,13 +183,14 @@ function fillPockets(terr, w, h, minSize) {
  */
 export function generateTerrain(rng, params, w = MAP_W, h = MAP_H) {
   const terr = caveCA(rng, w, h, params.fill);
-  // Rifts spaced evenly between the start (bottom) and exit (top) bands.
-  const { count, minW, maxW } = params.rifts;
-  const span = h - 20;
+  // Barriers spaced evenly between the start (bottom) and exit (top) bands:
+  // every one of them must be crossed with ink.
+  const { count, minW, maxW } = params.barriers;
+  const span = h - 22;
+  const gap = span / (count + 1);
   for (let r = 0; r < count; r++) {
-    const y0 = Math.round(10 + ((r + 1) * span) / (count + 1) + rng.int(-2, 2));
-    const kind = rng.chance(params.riverChance) ? T.WATER : T.CHASM;
-    carveRift(rng, terr, w, h, y0, minW, maxW, kind);
+    const y0 = Math.round(11 + (r + 1) * gap + rng.int(-1, 1));
+    carveRift(rng, terr, w, h, y0, minW, maxW, rng.pick(params.kinds), Math.max(1, Math.floor(gap / 3)));
   }
   for (let l = 0; l < params.lakes; l++) growLake(rng, terr, w, h, rng.int(5, 16));
   fillPockets(terr, w, h, 10);
@@ -250,6 +255,37 @@ function clearAround(terr, w, h, cx, cy, r) {
   }
 }
 
+/** Ring of water / void around the stairs (over ground only). */
+function carveMoat(rng, terr, w, h, ex, ey, kind) {
+  const r = rng.next() < 0.5 ? 2.5 : 3;
+  for (let y = ey - 4; y <= ey + 4; y++) {
+    for (let x = ex - 4; x <= ex + 4; x++) {
+      if (x <= 0 || y <= 0 || x >= w - 1 || y >= h - 1) continue;
+      const d = Math.hypot(x - ex, y - ey);
+      const i = y * w + x;
+      if (d >= r - 0.5 && d < r + 0.6 && terr[i] === T.GROUND) terr[i] = kind;
+    }
+  }
+}
+
+/**
+ * Where does the cheapest route need ink? Returns one entry per crossing:
+ * the last free tile before it ("near") and the first free tile after ("far").
+ */
+export function findCrossings(w, h, terr, s, e) {
+  const route = cheapestRoute(w, h, terr, null, null, s, e);
+  const out = [];
+  const p = route.path;
+  for (let k = 1; k < p.length; k++) {
+    if (inkNeed(terr, null, null, p[k]) !== 1 || inkNeed(terr, null, null, p[k - 1]) !== 0) continue;
+    let j = k;
+    while (j < p.length && inkNeed(terr, null, null, p[j]) === 1) j++;
+    if (j < p.length) out.push({ near: p[k - 1], far: p[j], width: j - k });
+    k = j;
+  }
+  return out;
+}
+
 /** Choose `count` well-spread tiles from candidates. */
 function spreadPick(rng, candidates, count, w, avoid, minDist) {
   const chosen = [];
@@ -287,6 +323,7 @@ export function generateFloor(floor, seed, w = MAP_W, h = MAP_H) {
     const ey = (e / w) | 0;
     clearAround(terr, w, h, sx, sy, 1);
     clearAround(terr, w, h, ex, ey, 1);
+    if (params.moat) carveMoat(rng, terr, w, h, ex, ey, rng.pick([T.WATER, T.VOID, T.CHASM]));
     terr[e] = T.EXIT;
 
     const field = inkField(w, h, terr, null, null, s);
@@ -384,5 +421,6 @@ function finishFloor(rng, params, terr, w, h, s, e, cost, ruins, field, attempts
     anchors,
     attempts,
     params,
+    crossings: findCrossings(w, h, terr, s, e),
   };
 }

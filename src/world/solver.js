@@ -84,14 +84,84 @@ export function minInkCost(w, h, terrain, ink, scrib, a, b) {
   return dist[b] < 0 ? Infinity : dist[b];
 }
 
-/** Cheapest route as { cost, path: tileIndices (start..end) }. */
+/**
+ * Cheapest route as { cost, path: tileIndices (start..end) }.
+ * Minimises ink first, then walking distance (so equal-ink alternatives
+ * resolve to one stable, natural path). Dijkstra on cost = ink * 4096 + steps.
+ */
 export function cheapestRoute(w, h, terrain, ink, scrib, a, b) {
-  const { dist, prev } = inkField(w, h, terrain, ink, scrib, a);
-  if (dist[b] < 0) return { cost: Infinity, path: [] };
+  const n = w * h;
+  const BIG = 4096;
+  const dist = new Float64Array(n).fill(Infinity);
+  const prev = new Int32Array(n).fill(-1);
+  const done = new Uint8Array(n);
+  // binary heap of [cost, node]
+  const hc = [];
+  const hn = [];
+  const push = (c, v) => {
+    let i = hc.length;
+    hc.push(c);
+    hn.push(v);
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (hc[p] <= c) break;
+      hc[i] = hc[p];
+      hn[i] = hn[p];
+      i = p;
+    }
+    hc[i] = c;
+    hn[i] = v;
+  };
+  const pop = () => {
+    const v = hn[0];
+    const lc = hc.pop();
+    const ln = hn.pop();
+    if (hc.length) {
+      let i = 0;
+      for (;;) {
+        let c = 2 * i + 1;
+        if (c >= hc.length) break;
+        if (c + 1 < hc.length && hc[c + 1] < hc[c]) c++;
+        if (hc[c] >= lc) break;
+        hc[i] = hc[c];
+        hn[i] = hn[c];
+        i = c;
+      }
+      hc[i] = lc;
+      hn[i] = ln;
+    }
+    return v;
+  };
+  dist[a] = 0;
+  push(0, a);
+  while (hc.length) {
+    const cur = pop();
+    if (done[cur]) continue;
+    done[cur] = 1;
+    if (cur === b) break;
+    const cx = cur % w;
+    const cy = (cur / w) | 0;
+    for (let k = 0; k < 4; k++) {
+      const nx = cx + DX4[k];
+      const ny = cy + DY4[k];
+      if (nx < 0 || ny < 0 || nx >= w || ny >= h) continue;
+      const ni = ny * w + nx;
+      if (done[ni]) continue;
+      const need = inkNeed(terrain, ink, scrib, ni);
+      if (need < 0) continue;
+      const nd = dist[cur] + need * BIG + 1;
+      if (nd < dist[ni]) {
+        dist[ni] = nd;
+        prev[ni] = cur;
+        push(nd, ni);
+      }
+    }
+  }
+  if (!isFinite(dist[b])) return { cost: Infinity, path: [] };
   const path = [];
   for (let c = b; c !== -1; c = prev[c]) path.push(c);
   path.reverse();
-  return { cost: dist[b], path };
+  return { cost: Math.floor(dist[b] / BIG), path };
 }
 
 /**

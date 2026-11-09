@@ -213,9 +213,33 @@ export class AudioFX {
     for (const o of d.oscs) o.stop(t + 2.5);
     d.lfo.stop(t + 2.5);
   }
+  /** The page is crumpled and rewritten: boom, a long tear, crackling folds. */
   rewrite() {
-    this._noise(2.4, { type: 'lowpass', freq: 200, freqEnd: 1800, q: 3, gain: 0.3, attack: 0.9 });
-    this._tone(48, 2.2, { type: 'triangle', gain: 0.25, freqEnd: 36, attack: 0.4 });
+    this._tone(55, 1.6, { type: 'sine', gain: 0.55, freqEnd: 30, attack: 0.01 });
+    this._noise(0.5, { type: 'lowpass', freq: 400, gain: 0.45, attack: 0.005 });
+    this._noise(1.4, { type: 'bandpass', freq: 500, freqEnd: 4200, q: 1.5, gain: 0.32, attack: 0.3, delay: 0.1 });
+    this._noise(2.6, { type: 'lowpass', freq: 200, freqEnd: 1800, q: 3, gain: 0.3, attack: 0.9 });
+    this._tone(48, 2.4, { type: 'triangle', gain: 0.25, freqEnd: 36, attack: 0.4 });
+    // crackling paper folds
+    for (let k = 0; k < 34; k++) {
+      this._noise(0.025 + Math.random() * 0.05, {
+        type: 'bandpass',
+        freq: 1500 + Math.random() * 4500,
+        q: 3,
+        gain: 0.1 + Math.random() * 0.2,
+        delay: Math.random() * 2.6,
+      });
+    }
+  }
+  /** A Smudge smears your ink: a wet splat and a gulp. */
+  smear() {
+    this._noise(0.25, { type: 'lowpass', freq: 900, freqEnd: 200, gain: 0.4, attack: 0.005 });
+    this._tone(300, 0.3, { type: 'sine', gain: 0.25, freqEnd: 90 });
+  }
+  /** Countdown tick in the last seconds (n = 3, 2, 1). */
+  tick(n = 1) {
+    this._tone(n === 1 ? 660 : 440, 0.12, { type: 'square', gain: 0.08, lowpass: 2000 });
+    this._tone(70, 0.25, { type: 'sine', gain: 0.3, freqEnd: 45 });
   }
   step() {
     this._noise(0.05, { type: 'lowpass', freq: 500, gain: 0.08 });

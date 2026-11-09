@@ -33,7 +33,10 @@ export class RewriteSystem {
 
   update(game, dt) {
     if (!this.sweeping) {
+      const before = Math.ceil(this.timeLeft);
       this.timeLeft -= dt;
+      const now = Math.ceil(this.timeLeft);
+      if (now !== before && now <= 3 && now >= 1) game.events.emit('rewriteTick', { n: now });
       if (this.timeLeft <= 5 && !this.warned) {
         this.warned = true;
         game.events.emit('rewriteWarn', {});
@@ -53,6 +56,7 @@ export class RewriteSystem {
     this.applied = 0;
     this.plan = this.makePlan(game);
     this._eligible = this.plan.eligible;
+    this._lastTear = this.plan.tear.size;
     game.events.emit('rewriteStart', {});
   }
 
@@ -87,17 +91,58 @@ export class RewriteSystem {
     const scrib = new Float32Array(w.n);
     for (let i = 0; i < w.n; i++) if (!eligible[i]) scrib[i] = w.scrib[i];
 
-    let best = null;
+    // Build several candidate worlds. The wave is hostile: it keeps the one
+    // that makes your route MOST expensive while still affordable with the
+    // ink you hold (with a little margin). A tear is ripped across the way
+    // ahead, just beyond your sight - only your ink lines survive it.
+    const margin = 2;
+    const nowCost = minInkCost(w.w, w.h, w.terrain, w.ink, w.scrib, game.playerTile, exit);
+    // Hurt, but within reason: a few ink more than the route costs now.
+    const cap = Math.min(budget - margin, (isFinite(nowCost) ? nowCost : 0) + 3 + Math.ceil(game.floor / 5));
+    let hardest = null;
+    let cheapest = null;
     for (let attempt = 0; attempt < 8; attempt++) {
       const cand = generateTerrain(rng, params, w.w, w.h);
       const next = w.terrain.slice();
       for (let i = 0; i < w.n; i++) if (eligible[i]) next[i] = cand[i];
       this._placeLoose(rng, next, eligible, loose, w);
+      const tear = this._tear(game, rng, next, eligible);
       const cost = minInkCost(w.w, w.h, next, w.ink, scrib, game.playerTile, exit);
-      if (!best || cost < best.cost) best = { next, eligible, cost };
-      if (cost <= budget) break;
+      const plan = { next, eligible, cost, tear };
+      if (!cheapest || cost < cheapest.cost) cheapest = plan;
+      if (cost <= cap && (!hardest || cost > hardest.cost)) hardest = plan;
     }
-    return best;
+    return hardest || cheapest;
+  }
+
+  /**
+   * Rip a band of void/chasm/water across the map a few tiles past the edge
+   * of the explorer's vision, towards the stairs. Only eligible (unseen,
+   * un-inked) ground is torn, so an inked path punches straight through it.
+   */
+  _tear(game, rng, next, eligible) {
+    const w = game.world;
+    const p = game.player;
+    const e = w.exit;
+    const dir = e.y < p.ty ? -1 : 1;
+    const vision = Math.ceil(game.run.vision);
+    if (Math.abs(e.y - p.ty) < vision + 5) return new Set();
+    const kind = rng.pick([T.VOID, T.VOID, T.CHASM, T.WATER]);
+    const width = game.floor >= 5 ? 3 : 2;
+    let cy = p.ty + dir * (vision + 2 + rng.int(0, 1));
+    const torn = new Set();
+    for (let x = 1; x < w.w - 1; x++) {
+      if (rng.next() < 0.3) cy += rng.next() < 0.5 ? -1 : 1;
+      for (let k = 0; k < width; k++) {
+        const y = cy + dir * k;
+        if (y <= 1 || y >= w.h - 2) continue;
+        const i = y * w.w + x;
+        if (!eligible[i] || next[i] !== T.GROUND) continue;
+        next[i] = kind;
+        torn.add(i);
+      }
+    }
+    return torn;
   }
 
   _placeLoose(rng, next, eligible, loose, w) {
@@ -134,7 +179,9 @@ export class RewriteSystem {
       if (!eligible[i] || w.visible[i]) continue;
       if (Math.abs(x - p.tx) <= 1 && Math.abs(y - p.ty) <= 1) continue;
       w.setTerrain(i, next[i]);
-      w.explored[i] = 0;
+      // The fog rolls back over the rewritten page - except the fresh tear,
+      // which stays sketched on your map so you know your way was cut.
+      w.explored[i] = this.plan.tear.has(i) ? 1 : 0;
       w.fire[i] = 0;
       w.scrib[i] = 0;
       w.ash[i] = 0;
@@ -156,7 +203,7 @@ export class RewriteSystem {
     w.markAllDirty();
     game.afterTerrainChange();
     game.onRewrite(changed);
-    game.events.emit('rewriteEnd', { count: this.count, rescue });
+    game.events.emit('rewriteEnd', { count: this.count, rescue, cut: this._lastTear > 0 });
   }
 
   /** Solver safety net: the stairs must stay reachable with the ink you hold. */

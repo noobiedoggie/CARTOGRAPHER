@@ -749,3 +749,54 @@ h3 {
   font-weight: bold;
   letter-spacing: 0.06em;
 }
+
+/* Newly handed ink: the button glows until first used */
+.ink-btn.fresh {
+  animation: freshInk 1s ease-in-out infinite;
+}
+@keyframes freshInk {
+  50% {
+    box-shadow: 0 0 0 4px rgba(224, 182, 72, 0.9), 2px 3px 0 rgba(29, 25, 21, 0.4);
+  }
+}
+.ink-card {
+  margin: 8px 0 4px;
+}
+.ink-card h2 {
+  margin: 6px 0 2px;
+}
+.ink-card p {
+  font-size: 16px;
+  line-height: 1.4;
+  margin: 4px 0;
+}
+.ink-card .ink-what {
+  font-family: var(--hand);
+  font-size: 18px;
+}
+.ink-blot {
+  display: block;
+  margin: 4px auto;
+  width: 64px;
+  height: 40px;
+  border-radius: 48% 52% 45% 55% / 55% 45% 55% 45%;
+  border: 2.5px solid var(--ink);
+  box-shadow: 3px 4px 0 rgba(29, 25, 21, 0.35);
+}
+
+.ink-bar.drained {
+  animation: drained 0.6s ease-out;
+}
+@keyframes drained {
+  0% {
+    transform: translateX(-6px);
+    border-color: var(--red);
+    box-shadow: 0 0 0 4px rgba(163, 48, 42, 0.6);
+  }
+  30% {
+    transform: translateX(5px);
+  }
+  60% {
+    transform: translateX(-3px);
+  }
+}
