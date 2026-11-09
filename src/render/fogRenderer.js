@@ -3,9 +3,9 @@
  *
  * The fog is a small RGBA bitmap (4x4 pixels per tile) that is magnified with
  * bilinear smoothing, which gives soft vision edges for free. Each tile has:
- *   burn - reveal progress 0..1. When a tile is first explored its fog "burns"
- *          away: pixels whose noise value is below the burn front disappear
- *          and a glowing char line runs along the front, like burning paper.
+ *   burn - reveal progress 0..1. When a tile is first explored its fog
+ *          dissolves: pixels fade out as a noisy reveal front passes them,
+ *          rippling outward from the explorer.
  *   vis  - smoothed visibility; explored-but-not-visible tiles keep a light
  *          wash so they read as a faded sketch.
  */
@@ -145,42 +145,19 @@ export class FogRenderer {
     const b = this.burn[i];
     const thr = b * 1.3 - 0.15;
     const sketchA = SKETCH_ALPHA * (1 - this.vis[i]) * 255;
-    const reform = this.reforming[i];
     for (let sy = 0; sy < SUB; sy++) {
       let p = (y * SUB + sy) * this.W + x * SUB;
       for (let sx = 0; sx < SUB; sx++, p++) {
-        const nz = this.noise[p];
         const q = p * 4;
-        if (b <= 0 || nz > thr) {
-          const t = 0.93 + this.tex[p] * 0.12;
-          d[q] = FOG[0] * t;
-          d[q + 1] = FOG[1] * t;
-          d[q + 2] = FOG[2] * t;
-          d[q + 3] = 255;
-        } else if (nz > thr - 0.13) {
-          const e = (nz - (thr - 0.13)) / 0.13; // 0 = inner (charred) .. 1 = outer (glowing)
-          if (reform) {
-            d[q] = 150;
-            d[q + 1] = 128;
-            d[q + 2] = 98;
-            d[q + 3] = 200;
-          } else if (e > 0.55) {
-            d[q] = 245;
-            d[q + 1] = 150 + e * 60;
-            d[q + 2] = 60;
-            d[q + 3] = 255;
-          } else {
-            d[q] = 70 + e * 90;
-            d[q + 1] = 40 + e * 50;
-            d[q + 2] = 20;
-            d[q + 3] = 255 * Math.min(1, 0.5 + e);
-          }
-        } else {
-          d[q] = SKETCH[0];
-          d[q + 1] = SKETCH[1];
-          d[q + 2] = SKETCH[2];
-          d[q + 3] = sketchA;
-        }
+        // Soft dissolve: each pixel fades from fog to map as the reveal front
+        // (driven by smooth noise) passes it - no coloured edge.
+        let k = b <= 0 ? 0 : (thr - this.noise[p]) / 0.3 + 0.5;
+        k = k < 0 ? 0 : k > 1 ? 1 : k * k * (3 - 2 * k);
+        const t = 0.93 + this.tex[p] * 0.12;
+        d[q] = FOG[0] * t + (SKETCH[0] - FOG[0] * t) * k;
+        d[q + 1] = FOG[1] * t + (SKETCH[1] - FOG[1] * t) * k;
+        d[q + 2] = FOG[2] * t + (SKETCH[2] - FOG[2] * t) * k;
+        d[q + 3] = 255 + (sketchA - 255) * k;
       }
     }
   }

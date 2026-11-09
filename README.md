@@ -9,7 +9,7 @@ is a shortcut. Every minute the world **rewrites itself**, and your ink is the o
 stays.
 
 - 10 procedurally generated floors + a boss floor (*The Devourer*, a giant eraser that eats the map)
-- Fog of war with a burning-paper reveal; explored areas stay as a faded sketch
+- Fog of war that dissolves softly as you explore; explored areas stay as a faded sketch
 - 4 ink types, 16 between-floor upgrades, a meta-progression **Atlas** (pages, unlocks, outfits)
 - Hand-drawn parchment look, procedural sound and haptics. There are **no image or audio assets**:
   everything is generated at runtime.
@@ -254,8 +254,8 @@ it digs a passage through hidden rock or conjures a fresh ink pool, so a floor i
 ### Rendering (`src/render/`)
 
 - Terrain is drawn into cached 10×10-tile chunks that are re-rendered only when tiles change.
-- The fog is a 4-pixels-per-tile RGBA bitmap, magnified with smoothing. The burning-paper reveal
-  is a noise threshold that advances per tile.
+- The fog is a 4-pixels-per-tile RGBA bitmap, magnified with smoothing. The reveal is a soft
+  noise-driven dissolve that ripples outward from the explorer.
 - Parchment, grain, vignette, sprites and icons are all procedural.
 - Adaptive quality drops the grain overlay, and then resolution, if a device can't hold 60 FPS.
 
